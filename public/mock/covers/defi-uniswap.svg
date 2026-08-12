@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225" viewBox="0 0 400 225">
+  <rect width="400" height="225" fill="#1b1f2c" />
+  <rect x="0" y="0" width="400" height="225" fill="none" stroke="#2d3748" stroke-width="1" />
+  <circle cx="220" cy="80" r="36" fill="#f59e0b" opacity="0.25" />
+  <circle cx="280" cy="80" r="36" fill="#ffb95f" opacity="0.45" />
+  <text x="24" y="200" font-family="Sora, sans-serif" font-size="22" font-weight="700" fill="#dfe2f3">
+    DeFi 与 Uniswap 实战
+  </text>
+</svg>

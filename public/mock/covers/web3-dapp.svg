@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="225" viewBox="0 0 400 225">
+  <rect width="400" height="225" fill="#1b1f2c" />
+  <rect x="0" y="0" width="400" height="225" fill="none" stroke="#2d3748" stroke-width="1" />
+  <circle cx="320" cy="60" r="50" fill="#10b981" opacity="0.2" />
+  <rect x="50" y="60" width="80" height="80" rx="12" fill="#4edea3" opacity="0.85" />
+  <text x="24" y="200" font-family="Sora, sans-serif" font-size="22" font-weight="700" fill="#dfe2f3">
+    从零构建 Web3 DApp
+  </text>
+</svg>

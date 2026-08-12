@@ -1,0 +1,110 @@
+@import "tailwindcss";
+
+@theme {
+  /* Ethereal Academy — colors (dark mode only) */
+  --color-background: #0f131f;
+  --color-surface: #0f131f;
+  --color-surface-dim: #0f131f;
+  --color-surface-bright: #353946;
+  --color-surface-container-lowest: #0a0e1a;
+  --color-surface-container-low: #171b28;
+  --color-surface-container: #1b1f2c;
+  --color-surface-container-high: #262a37;
+  --color-surface-container-highest: #313442;
+  --color-on-surface: #dfe2f3;
+  --color-on-surface-variant: #ccc3d8;
+  --color-outline: #958da1;
+  --color-outline-variant: #4a4455;
+
+  --color-primary: #d2bbff;
+  --color-on-primary: #3f008e;
+  --color-primary-container: #7c3aed;
+  --color-on-primary-container: #ede0ff;
+
+  --color-secondary: #4edea3;
+  --color-on-secondary: #003824;
+  --color-secondary-container: #00a572;
+  --color-on-secondary-container: #00311f;
+
+  --color-tertiary: #ffb95f;
+  --color-on-tertiary: #472a00;
+  --color-tertiary-container: #905b00;
+  --color-on-tertiary-container: #ffe1c0;
+
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+
+  /* Fonts */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sora), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Type scale (Ethereal Academy) */
+  --text-display: 48px;
+  --text-display--line-height: 56px;
+  --text-display--font-weight: 700;
+  --text-display--letter-spacing: -0.02em;
+
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 40px;
+  --text-headline-lg--font-weight: 600;
+
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 32px;
+  --text-headline-md--font-weight: 600;
+
+  --text-body-lg: 18px;
+  --text-body-lg--line-height: 28px;
+
+  --text-body-md: 16px;
+  --text-body-md--line-height: 24px;
+
+  --text-label-md: 14px;
+  --text-label-md--line-height: 20px;
+  --text-label-md--letter-spacing: 0.05em;
+  --text-label-md--font-weight: 500;
+
+  --text-code-sm: 12px;
+  --text-code-sm--line-height: 16px;
+
+  /* Radius */
+  --radius: 0.5rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+
+  /* Spacing extras (8px grid, stack rhythm) */
+  --spacing-stack-sm: 12px;
+  --spacing-stack-md: 24px;
+  --spacing-stack-lg: 48px;
+  --spacing-gutter: 24px;
+  --spacing-margin-mobile: 16px;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-on-surface);
+}
+
+/* Ethereal Academy container: 1280px max width, responsive gutters */
+.container-app {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: var(--spacing-margin-mobile);
+}
+
+@media (min-width: 768px) {
+  .container-app {
+    padding-inline: 20px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container-app {
+    padding-inline: var(--spacing-gutter);
+  }
+}
