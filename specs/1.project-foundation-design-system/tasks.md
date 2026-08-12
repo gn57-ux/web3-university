@@ -16,23 +16,23 @@
 
 ### 功能 1: 项目初始化
 
-- [ ] T-001: Next.js App Router 项目初始化（TypeScript + Tailwind CSS + ESLint + lucide-react 依赖） ~30min
+- [x] T-001: Next.js App Router 项目初始化（TypeScript + Tailwind CSS + ESLint + lucide-react 依赖） ~30min
 
 ### 功能 2: 设计令牌
 
-- [ ] T-002: 按 Stitch「Ethereal Academy」设计系统配置 Tailwind 主题令牌（颜色/圆角/间距/断点） ~30min
-- [ ] T-003: 引入 Sora / Inter / JetBrains Mono 字体并配置全局暗色模式基底样式（背景色/文本色） ~15min
+- [x] T-002: 按 Stitch「Ethereal Academy」设计系统配置 Tailwind 主题令牌（颜色/圆角/间距/断点） ~30min
+- [x] T-003: 引入 Sora / Inter / JetBrains Mono 字体并配置全局暗色模式基底样式（背景色/文本色） ~15min
 
 ### 功能 3: Mock 基础设施
 
-- [ ] T-004: 定义共享 Mock 数据类型与初始 fixtures（Course/Lesson/User/Certificate/Transaction/TeacherApplication） ~30min
-- [ ] T-005: 实现 Mock 钱包状态 Hook/Context（connected/address/ydBalance/network/connect/disconnect/setNetwork/setYdBalance，后两者供消费方构造"错误网络"/"余额不足"场景） ~30min
+- [x] T-004: 定义共享 Mock 数据类型与初始 fixtures（Course/Lesson/User/Certificate/Transaction/TeacherApplication） ~30min
+- [x] T-005: 实现 Mock 钱包状态 Hook/Context（connected/address/ydBalance/network/connect/disconnect/setNetwork/setYdBalance，后两者供消费方构造"错误网络"/"余额不足"场景） ~30min
 
 ### 功能 4: 全局布局
 
-- [ ] T-006: 实现 TopNav 组件（Logo、导航链接、钱包状态徽标、网络徽标） ~30min
-- [ ] T-007: 实现 Footer 组件（条款/隐私/白皮书/文档链接、Sepolia 声明、版权信息） ~15min
-- [ ] T-008: 组装根布局 app/layout.tsx（字体、WalletProvider、TopNav、Footer、骨架 loading 基础样式） ~15min
+- [x] T-006: 实现 TopNav 组件（Logo、导航链接、钱包状态徽标、网络徽标） ~30min
+- [x] T-007: 实现 Footer 组件（条款/隐私/白皮书/文档链接、Sepolia 声明、版权信息） ~15min
+- [x] T-008: 组装根布局 app/layout.tsx（字体、WalletProvider、TopNav、Footer、骨架 loading 基础样式） ~15min
 
 ## 依赖关系
 
