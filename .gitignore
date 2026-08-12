@@ -1,0 +1,48 @@
+# macOS
+.DS_Store
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Environment variables
+.env*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Editor / IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# Foundry / Hardhat (future contract tooling)
+cache/
+out/
+artifacts/
+typechain/
+typechain-types/
+broadcast/
+
+# Misc
+*.pem
+codex-review/
