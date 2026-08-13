@@ -16,20 +16,20 @@
 
 ### 功能 1: 资料头部
 
-- [ ] T-001: 个人信息头部（头像/用户名/角色徽标/钱包地址/YD 余额） ~30min
-- [ ] T-002: 修改用户名 Modal（输入框 + 取消/钱包签名确认 + Mock 签名等待态） ~30min
+- [x] T-001: 个人信息头部（头像/用户名/角色徽标/钱包地址/YD 余额） ~30min
+- [x] T-002: 修改用户名 Modal（输入框 + 取消/钱包签名确认 + Mock 签名等待态） ~30min
 
 ### 功能 2: Tab 导航
 
-- [ ] T-003: Tab 导航组件（已购课程/学习进度/NFT证书/购买记录） ~15min
-- [ ] T-004: 已购课程 Tab 内容（课程卡列表 + 继续学习入口；`useState` 初始为默认 fixtures，`useEffect` 挂载后再从 `purchaseStore.getPurchases()` 恢复，避免 hydration mismatch） ~30min
-- [ ] T-005: 学习进度 Tab 内容（进度条列表） ~15min
-- [ ] T-006: NFT 证书 Tab 内容（虹彩边框证书卡片 + Token ID） ~30min
-- [ ] T-007: 购买记录 Tab 内容（交易表格：课程/价格/时间/交易哈希+浏览器链接占位；同 T-004，`useEffect` 内恢复 `purchaseStore` 数据，避免 hydration mismatch） ~30min
+- [x] T-003: Tab 导航组件（已购课程/学习进度/NFT证书/购买记录） ~15min
+- [x] T-004: 已购课程 Tab 内容（课程卡列表 + 继续学习入口；`useState` 初始为默认 fixtures，`useEffect` 挂载后再从 `purchaseStore.getPurchases()` 恢复，避免 hydration mismatch） ~30min
+- [x] T-005: 学习进度 Tab 内容（进度条列表） ~15min
+- [x] T-006: NFT 证书 Tab 内容（虹彩边框证书卡片 + Token ID） ~30min
+- [x] T-007: 购买记录 Tab 内容（交易表格：课程/价格/时间/交易哈希+浏览器链接占位；同 T-004，`useEffect` 内恢复 `purchaseStore` 数据，避免 hydration mismatch） ~30min
 
 ### 集成与测试
 
-- [ ] T-008: 响应式联调（Tab 移动端横向滚动，表格移动端转卡片式布局，对照 Stitch 截图） ~30min
+- [x] T-008: 响应式联调（Tab 移动端横向滚动，表格移动端转卡片式布局，对照 Stitch 截图） ~30min
 
 ## 依赖关系
 

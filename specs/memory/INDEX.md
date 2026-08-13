@@ -13,3 +13,5 @@
 - [Stitch 原稿与 spec 摘要文案不一致时改动要双向可追溯](stitch-vs-spec-text-drift.md) — 代码注释指向 spec 段落 + design.md 补差异说明，不要只改一边 | tags: stitch,design-md,spec-drift,documentation,frontend
 - [组件需要在 prop 变化时重置内部 state，用 key 重新挂载而非 useEffect 里 setState](reset-state-via-key.md) — set-state-in-effect 规则的正确规避方式 | tags: react,hooks,key,useEffect,set-state-in-effect,reset-state
 - [同一课程的模块/章节标题在不同页面要复用同一份 fixture](lesson-title-consistency-across-pages.md) — 不要照抄 Stitch 截图的占位英文标题另起一套命名 | tags: mock-data,fixtures,consistency,course-detail,learning-center,stitch
+- [useSyncExternalStore 的 getSnapshot 返回数组/对象时必须保证引用稳定](use-sync-external-store-array-snapshot.md) — 否则无限重渲染，源头加引用缓存 | tags: react,hooks,useSyncExternalStore,localStorage,infinite-render,reference-equality
+- [本地回退演示数据的 UI 承诺不能超出其它 feature 真实业务门禁能兑现的范围](fallback-data-vs-real-gate-consistency.md) — 兜底数据的交互入口不能指向会被真实校验拦截的页面 | tags: mock-data,fallback,consistency,purchase-gate,cross-feature

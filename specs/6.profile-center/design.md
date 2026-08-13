@@ -46,11 +46,19 @@
 
 ### 模块 4: 与 Mock 购买记录集成
 
-`lib/mock/purchaseStore.ts`（与 feature 4 共用同一模块/接口约定）提供 `getPurchases(): MockPurchaseRecord[]`。`PurchasedCoursesTab` 与 `PurchaseRecordsTab` 的 `useState` **初始值必须是本 feature 内置的默认 fixtures**（与服务端渲染结果一致），**不得**在渲染期间直接调用 `getPurchases()` 读取 `localStorage`——`typeof window !== "undefined"` 只能避免服务端报错，无法让服务端与客户端首次渲染的结果一致，仍会产生 hydration mismatch。正确做法与 feature 4/5 一致：在 `useEffect(() => { ... }, [])` 中（挂载后、hydration 完成后）调用 `getPurchases()`，若返回非空数组则 `setState` 替换为其内容；若为空数组则保留默认 fixtures 不变。
+`lib/mock/purchaseStore.ts`（与 feature 4 共用同一模块/接口约定）提供 `getPurchases(): MockPurchaseRecord[]`。
+
+> **实现阶段更新**：本段原方案（`useState` 初值为默认 fixtures + `useEffect` 挂载后 `getPurchases()` 非空则 `setState` 替换）与 feature 4/5 已被 `specs/LESSONS.md` 判定为反模式的旧方案同构（`useEffect` 里同步 `setState` 恢复外部状态）。实际实现用共享 hook `lib/purchase/useProfilePurchases.ts` 封装 `useSyncExternalStore(subscribePurchases, getSnapshot, getServerSnapshot)`：`getServerSnapshot` 恒返回 `mockTransactions`（与 SSR 一致），客户端 `getSnapshot` 优先返回 `getPurchases()` 的真实结果，为空则回退 `mockTransactions`。`PurchasedCoursesTab`/`PurchaseRecordsTab` 都消费这个共享 hook。
+>
+> 踩坑记录：`getPurchases()` 内部 `JSON.parse(localStorage 内容)` 每次调用都产出新数组引用，直接作为 `useSyncExternalStore` 的 `getSnapshot` 返回值会违反其"无变化必须返回同一引用"的契约，导致无限重渲染。修复方式是在 `purchaseStore.ts` 的 `readStorage()` 内按原始字符串做一层引用缓存，字符串不变则复用旧数组引用。
+>
+> **回退数据与真实购课门禁的边界**：`useProfilePurchases()` 回退时返回的是 `lib/mock/fixtures.ts` 里那个具体的 `mockTransactions` 数组引用，可以用 `purchases === mockTransactions` 做引用相等判断，区分"当前展示的是真实购买记录"还是"回退演示数据"。这个区分是必要的，因为回退数据里的课程并未被 `lib/mock/purchaseStore.ts` 记录为真实已购：
+> - `PurchasedCoursesTab.tsx`：回退态下"继续学习"入口退化为"查看课程详情"（`/courses/{id}`），不跳转会被购课门禁拦截的 `/learn/{id}`（见 requirements.md F-004 的例外说明）。
+> - `LearningProgressTab.tsx`：真实购买记录存在时，必须按购买的 `courseId` 过滤/合成 `lib/mock/profileFixtures.ts` 的 `defaultCourseProgress`（缺预设记录的课程按"前 3 课已完成"合成，与学习中心默认演示进度一致），不能不加区分地展示全部 3 条固定记录，否则与"已购课程"/"购买记录" Tab 已切到真实数据的状态矛盾。回退（无真实购买记录）态才展示 `defaultCourseProgress` 全部内容。
 
 **涉及层及关键设计:**
 
-- 全部客户端组件；购买记录的读取严格发生在 `useEffect` 内，`useState` 初始值恒定为默认 fixtures，服务端与客户端首次渲染输出一致。
+- 全部客户端组件；购买记录读取经由 `useProfilePurchases()` 的 `useSyncExternalStore`（见上方模块 4 更新说明），服务端与客户端首次渲染输出一致，不产生 hydration mismatch。
 
 ## 接口契约
 
