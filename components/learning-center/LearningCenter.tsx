@@ -61,24 +61,28 @@ export function LearningCenter({ courseId, courseTitle, lessons }: LearningCente
         {currentLesson?.title ?? courseTitle}
       </h1>
 
+      {/* AC-001 要求视觉/文档顺序为 面包屑→视频区→代码示例→章节进度→评论。桌面态章节进度
+          在右侧栏，但移动端各区块按源码顺序纵向堆叠，因此章节进度这块必须在 DOM 里排在
+          评论前面，靠 lg:col-start-2/row-span-2 把它挪到桌面右侧栏（同 course-detail 的
+          PurchasePanel 处理方式），不能靠"两个并列 flex 列"实现（那样移动端堆叠顺序会
+          与文档顺序相反）。 */}
       <div className="mt-stack-md grid grid-cols-1 gap-stack-md lg:grid-cols-[1fr_320px]">
-        <div className="flex flex-col gap-stack-md">
+        <div className="lg:col-start-1 lg:row-start-1">
           {isComplete || !currentLesson ? (
             <CompletionBanner />
           ) : (
-            <>
+            <div className="flex flex-col gap-stack-md">
               <MockVideoPlayer
                 key={currentLesson.id}
                 title={currentLesson.title}
                 durationMinutes={currentLesson.durationMinutes}
               />
               <CodeSnippet />
-            </>
+            </div>
           )}
-          <CommentSection initialComments={mockComments} />
         </div>
 
-        <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
+        <div className="rounded-lg border border-outline-variant bg-surface-container p-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-headline-md text-on-surface">课程进度</h2>
             <span className="rounded-full bg-secondary-container px-2 py-0.5 font-mono text-label-md text-on-secondary-container">
@@ -103,6 +107,10 @@ export function LearningCenter({ courseId, courseTitle, lessons }: LearningCente
               标记本章完成（演示）
             </button>
           )}
+        </div>
+
+        <div className="lg:col-start-1 lg:row-start-2">
+          <CommentSection initialComments={mockComments} />
         </div>
       </div>
     </div>
