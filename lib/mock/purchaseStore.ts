@@ -31,15 +31,30 @@ export function subscribePurchases(listener: Listener): () => void {
   };
 }
 
+// useSyncExternalStore 要求 getSnapshot 在底层数据不变时返回同一个引用，否则
+// React 会判定"每次都变了"陷入重渲染死循环。localStorage.getItem 本身不缓存，
+// JSON.parse 每次都产出新数组，因此这里按原始字符串做一层引用缓存：只有当
+// localStorage 里的字符串真的变化时才重新解析、更新缓存引用。
+let cachedRaw: string | null = null;
+let cachedRecords: MockPurchaseRecord[] = [];
+
 function readStorage(): MockPurchaseRecord[] {
-  if (typeof window === "undefined") return [];
+  if (typeof window === "undefined") return cachedRecords;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
+    if (raw === cachedRaw) return cachedRecords;
+
+    cachedRaw = raw;
+    if (!raw) {
+      cachedRecords = [];
+      return cachedRecords;
+    }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as MockPurchaseRecord[]) : [];
+    cachedRecords = Array.isArray(parsed) ? (parsed as MockPurchaseRecord[]) : [];
+    return cachedRecords;
   } catch {
-    return [];
+    cachedRecords = [];
+    return cachedRecords;
   }
 }
 

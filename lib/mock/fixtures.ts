@@ -175,6 +175,15 @@ export const mockCertificates: Certificate[] = [
     ownerAddress: mockCurrentUser.address,
     mintedAt: "2026-07-01T10:00:00.000Z",
   },
+  // Stitch 个人中心截图第二张证书卡片示例（DeFi 实战证书，Token ID #1092），
+  // 沿用已有的 defi-uniswap-practical 课程记录，不新造课程名称。
+  {
+    tokenId: "1092",
+    courseId: "defi-uniswap-practical",
+    courseName: "DeFi 与 Uniswap 实战",
+    ownerAddress: mockCurrentUser.address,
+    mintedAt: "2026-07-20T15:00:00.000Z",
+  },
 ];
 
 export const mockTransactions: Transaction[] = [
@@ -184,6 +193,20 @@ export const mockTransactions: Transaction[] = [
     priceYD: SOLIDITY_101_PRICE_YD,
     purchasedAt: "2026-06-20T08:30:00.000Z",
     txHash: "0xmock1a2b3c4d5e6f7890abcdef1234567890abcdef1234567890abcdef123456",
+  },
+  {
+    courseId: "defi-uniswap-practical",
+    courseName: "DeFi 与 Uniswap 实战",
+    priceYD: 8,
+    purchasedAt: "2026-07-15T09:45:00.000Z",
+    txHash: "0xmock7a8b9c0d1e2f3456abcdef7890abcdef1234567890abcdef1234567890",
+  },
+  {
+    courseId: "web3-dapp-from-zero",
+    courseName: "从零构建 Web3 DApp",
+    priceYD: 8,
+    purchasedAt: "2026-08-05T13:20:00.000Z",
+    txHash: "0xmock2c3d4e5f6a7b8901cdef1234567890abcdef1234567890abcdef123456",
   },
 ];
 
