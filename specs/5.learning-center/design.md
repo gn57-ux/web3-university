@@ -29,7 +29,9 @@
 
 ### 模块 0: 购课门禁
 
-`app/learn/[courseId]/page.tsx` 顶层逻辑：组件挂载后（`useEffect`，与 4.course-detail-mock-purchase 的 hydration 处理方式一致，初始 `useState` 置 `false`/`loading`，避免 SSR/CSR mismatch）调用 `lib/mock/purchaseStore.ts` 的 `getPurchases()`，判断 `getPurchases().some(p => p.courseId === courseId)`：
+`app/learn/[courseId]/page.tsx` 顶层逻辑：调用 `lib/mock/purchaseStore.ts` 的 `getPurchases()`，判断 `getPurchases().some(p => p.courseId === courseId)`。
+
+> **实现阶段更新**：本段原方案（`useEffect` + 初始 `useState` 置 `false`/`loading`）已在 feature 4 实现后被 `specs/LESSONS.md`（2026-08-12 Feature 4 条目）判定为反模式——`eslint-plugin-react-hooks` 的 `set-state-in-effect` 规则会拒绝在 effect 里同步 `setState` 恢复状态。实际实现改用 `useSyncExternalStore(subscribePurchases, () => getPurchases().some(...), () => false)`：`getServerSnapshot` 恒返回 `false` 保证 SSR/首次渲染一致，无需额外的"恢复期间骨架屏"状态。
 
 - 已购买 → 正常渲染模块 1-6 的完整学习内容。
 - 未购买 → 渲染 `components/learning-center/PurchaseRequiredGate.tsx`：展示"请先购买本课程"提示文案 + 跳转课程详情页（`Link href={`/courses/${courseId}`}`）按钮，不渲染视频/章节/评论等内容。
@@ -58,6 +60,8 @@
 - 课程 `order > completedLessonIds.length + 1` → **锁定**（锁图标，不可点击播放）。
 
 `components/learning-center/ProgressBar.tsx`：百分比 = `completedLessonIds.length / lessons.length`（与上述解锁算法共用同一个 `completedLessonIds`，天然保证进度百分比、视觉态、完课判定三者不会互相矛盾）。
+
+> **实现阶段简化**：状态字段用 `completedCount: number`（已完成课数）代替 `completedLessonIds: string[]`（已完成课 id 列表）。在当前 fixtures 下每门课程的 `order` 均为连续 `1..lessons.length`，两者语义等价（`completedCount` 即 `completedLessonIds.length`），且不再需要额外维护 id 列表。若后续 fixtures 引入非连续 `order`（如允许乱序解锁、跳过某课），需改回 id 列表方案，不能再假设"已完成数量"与"顺序位置"一一对应。
 
 初始 fixtures：5 课中前 3 课（模块 1-3）已计入 `completedLessonIds`，按算法推导：模块 4 为当前（可播放）、模块 5 为锁定，进度 `3 / 5 = 60%`——初始状态下已完成/当前/锁定三态同时可见，满足 AC-002。用户在当前课点击"标记本章完成"后该课 `order` 加入 `completedLessonIds`，下一课自动从锁定变为当前（顺序解锁），最后一课（模块 5）完成后 `completedLessonIds.length === lessons.length`（`5/5 = 100%`），触发模块 6 的完课与证书铸造提示，与 F-006 的 100% 触发条件严格一致，不存在提前显示 100% 或锁定态无法出现的矛盾。
 
