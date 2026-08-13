@@ -15,3 +15,5 @@
 - [同一课程的模块/章节标题在不同页面要复用同一份 fixture](lesson-title-consistency-across-pages.md) — 不要照抄 Stitch 截图的占位英文标题另起一套命名 | tags: mock-data,fixtures,consistency,course-detail,learning-center,stitch
 - [useSyncExternalStore 的 getSnapshot 返回数组/对象时必须保证引用稳定](use-sync-external-store-array-snapshot.md) — 否则无限重渲染，源头加引用缓存 | tags: react,hooks,useSyncExternalStore,localStorage,infinite-render,reference-equality
 - [本地回退演示数据的 UI 承诺不能超出其它 feature 真实业务门禁能兑现的范围](fallback-data-vs-real-gate-consistency.md) — 兜底数据的交互入口不能指向会被真实校验拦截的页面 | tags: mock-data,fallback,consistency,purchase-gate,cross-feature
+- [next/image 渲染用户自由填写的外部图片 URL 会因域名不在白名单而崩溃](next-image-external-url-crash.md) — 本地资源用 next/image，用户输入的外部 URL 退化用 img | tags: nextjs,next-image,remote-patterns,user-input,crash
+- [新建/编辑共用同一表单弹窗时必须单独设计"编辑非初始状态实体"的按钮行为](shared-form-modal-edit-vs-create.md) — 不能假设编辑态和新建态的可选操作集合完全一样 | tags: react,form,modal,state-machine,edit-vs-create
