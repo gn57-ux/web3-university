@@ -32,7 +32,9 @@
 
 ### 模块 2: 课程审核队列
 
-`components/admin/CourseReviewQueue.tsx`：`useState<PendingCourse[]>` 管理待审列表，"通过"将该课程从列表移除并（可选）追加到"已上架"展示区；"拒绝"同样移除，可附带 Mock 拒绝原因输入（非必须，视设计稿是否体现）。
+`components/admin/CourseReviewQueue.tsx`：`useState<PendingCourse[]>` 管理待审列表，"通过"将该课程状态更新为 `active` 并从"待审核"区块移到"已上架"区块（两区块互斥展示，非从列表整体移除）；"拒绝"从数组中移除。
+
+**实现阶段确认**：本模块用**卡片网格**（封面图 + 标题 + 讲师地址 + 描述摘要 + 通过/拒绝按钮），不复用模块 5 的通用表格组件——Stitch 原始截图（`screens/a66bccdfcf7543d1a47fdf9808d4d876`）本身就是卡片网格，且课程封面图、较长的描述摘要用表格承载会造成信息拥挤，不如卡片网格贴合设计稿。`requirements.md` F-005/AC-005 已同步更新为仅要求模块 3/4 两处表格样式统一。
 
 ### 模块 3: 老师白名单管理
 
@@ -44,7 +46,7 @@
 
 ### 模块 5: 通用管理表格样式
 
-`components/admin/AdminTable.tsx`：无竖线（`border-none`）、行间细横向分隔线（`divide-y divide-outline-variant`）、表头文本使用 `font-mono`（JetBrains Mono）。供模块 2/3/4 中的表格统一引用，避免样式重复实现。
+`components/admin/AdminTable.tsx`：无竖线（`border-none`）、行间细横向分隔线（`divide-y divide-outline-variant`）、表头文本使用 `font-mono`（JetBrains Mono）。供模块 3（老师白名单）/模块 4（完课确认）两处表格统一引用，避免样式重复实现；模块 2（课程审核队列）为卡片网格，不引用本组件（见模块 2 的实现阶段确认）。
 
 ### 模块 6: 权限提示占位
 
