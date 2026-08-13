@@ -9,7 +9,8 @@ import type {
 
 /**
  * 规范课程价格：docs/PRD.md 全文示例定价与 specs/4.course-detail-mock-purchase 一致，
- * 统一为 4 YD。所有 feature 引用「Solidity 智能合约入门」时必须复用该常量，不得各自编造价格。
+ * 「Solidity 智能合约入门」统一定价为 4 YD，所有 feature 引用该课程时必须复用该常量，
+ * 不得各自编造价格。
  */
 export const SOLIDITY_101_PRICE_YD = 4;
 
@@ -38,7 +39,9 @@ export const mockCourses: Course[] = [
     id: "defi-uniswap-practical",
     title: "DeFi 与 Uniswap 实战",
     teacher: "Dr. Robert Lee",
-    priceYD: 12,
+    // specs/2.homepage/design.md：非 Solidity 101 的精选课程按周期比例设更高档位价格，
+    // 8 周进阶课程 = Solidity 101（4 周/4 YD）的 2 倍。
+    priceYD: 8,
     level: "expert",
     coverUrl: "/mock/covers/defi-uniswap.svg",
     enrolledCount: 540,

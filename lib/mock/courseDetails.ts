@@ -73,6 +73,56 @@ const courseDetails: Record<string, CourseDetail> = {
       },
     ],
   },
+  "defi-uniswap-practical": {
+    ...mockCourses[2],
+    description:
+      "面向已掌握 Solidity 基础的进阶开发者，深入 DeFi 核心协议设计与 Uniswap 自动做市商（AMM）机制，从恒定乘积公式到流动性池实战搭建，掌握链上金融应用的核心构建能力。",
+    requiredBalanceYD: 8,
+    curriculum: [
+      {
+        id: "d1",
+        order: 1,
+        title: "DeFi 生态与核心概念",
+        summary: "理解去中心化金融的基本组成：借贷、DEX、稳定币与流动性挖矿。",
+      },
+      {
+        id: "d2",
+        order: 2,
+        title: "自动做市商（AMM）原理",
+        summary: "掌握恒定乘积公式 x*y=k，理解滑点、无常损失与价格发现机制。",
+      },
+      {
+        id: "d3",
+        order: 3,
+        title: "Uniswap V2 合约拆解",
+        summary: "阅读 Uniswap V2 核心合约源码，理解 Pair、Router、Factory 三者协作方式。",
+      },
+      {
+        id: "d4",
+        order: 4,
+        title: "流动性池实战搭建",
+        summary: "在测试网部署一个简化版流动性池合约，完成添加/移除流动性与代币兑换。",
+      },
+      {
+        id: "d5",
+        order: 5,
+        title: "闪电贷与套利风险",
+        summary: "理解闪电贷原理及其在套利、清算场景中的应用与常见攻击手法。",
+      },
+    ],
+    reviews: [
+      {
+        author: "0x9c2e...4f7a",
+        rating: 5,
+        comment: "Uniswap 源码拆解讲得很细，看完终于搞懂了 AMM 的定价逻辑。",
+      },
+      {
+        author: "0x1d88...aa03",
+        rating: 4,
+        comment: "内容偏进阶，建议先修完 Solidity 入门课程再来，收获会更大。",
+      },
+    ],
+  },
 };
 
 export function getCourseDetail(courseId: string): CourseDetail | null {
