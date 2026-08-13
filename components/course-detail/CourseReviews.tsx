@@ -7,7 +7,7 @@ function StarRating({ rating }: { rating: number }) {
       {Array.from({ length: 5 }, (_, i) => (
         <Star
           key={i}
-          className={`size-4 ${i < rating ? "fill-tertiary text-tertiary" : "text-outline-variant"}`}
+          className={`size-4 ${i < rating ? "fill-secondary text-secondary" : "text-outline-variant"}`}
           aria-hidden="true"
         />
       ))}

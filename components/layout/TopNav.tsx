@@ -36,7 +36,7 @@ export function TopNav() {
           <span className="hidden sm:inline">Web3 University</span>
         </Link>
 
-        <nav className="hidden items-center gap-6 md:flex" aria-label="主导航">
+        <nav className="hidden items-center gap-6 lg:flex" aria-label="主导航">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -74,7 +74,7 @@ export function TopNav() {
           <button
             type="button"
             onClick={() => setMobileOpen((open) => !open)}
-            className="flex shrink-0 items-center justify-center rounded-md border border-outline-variant bg-surface-container p-2 text-on-surface md:hidden"
+            className="flex shrink-0 items-center justify-center rounded-md border border-outline-variant bg-surface-container p-2 text-on-surface lg:hidden"
             aria-label={mobileOpen ? "关闭导航菜单" : "打开导航菜单"}
             aria-expanded={mobileOpen}
           >
@@ -89,7 +89,7 @@ export function TopNav() {
 
       {mobileOpen ? (
         <nav
-          className="border-t border-outline-variant/40 bg-surface-container-lowest md:hidden"
+          className="border-t border-outline-variant/40 bg-surface-container-lowest lg:hidden"
           aria-label="移动端导航"
         >
           <div className="container-app flex flex-col gap-1 py-3">
