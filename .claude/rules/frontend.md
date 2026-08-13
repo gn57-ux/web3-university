@@ -2,8 +2,8 @@
 description: Next.js + TypeScript + Tailwind 前端开发规范（当前为 Mock 交互阶段）
 paths:
   - "app/**"
-  - "src/**"
   - "components/**"
+  - "lib/**"
 ---
 
 # 前端规范
