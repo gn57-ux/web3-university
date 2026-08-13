@@ -19,3 +19,4 @@
 - [新建/编辑共用同一表单弹窗时必须单独设计"编辑非初始状态实体"的按钮行为](shared-form-modal-edit-vs-create.md) — 不能假设编辑态和新建态的可选操作集合完全一样 | tags: react,form,modal,state-machine,edit-vs-create
 - [列表里每行独立触发的异步操作，状态必须按行 key 追踪（Set/Map）](per-row-async-state-tracking.md) — 单值 useState 会导致并发行互相覆盖 loading 态、timer 泄漏 | tags: react,hooks,list,concurrency,loading-state,useState
 - [spec 文档内部自相矛盾时优先按 Stitch 原稿实现再回写 spec](spec-internal-contradiction-resolution.md) — 不要为凑字面合规推翻已确认合理的实现 | tags: spec-drift,design-md,requirements-md,documentation,stitch,review-conflict
+- [共享布局组件的响应式断点问题要在断点数值本身附近精确测试](shared-layout-breakpoint-edge-cases.md) — 不能只测代表性宽度，TopNav 768px 空档区间案例 | tags: responsive,breakpoint,tailwind,shared-component,cross-feature,topnav
