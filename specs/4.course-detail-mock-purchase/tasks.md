@@ -23,7 +23,7 @@
 ### 功能 2: 购买状态机
 
 - [ ] T-004: 共享 Mock Store 模块 `lib/mock/purchaseStore.ts`（`getPurchases()`/`recordPurchase(courseId, courseName, priceYD)`，记录含 `courseName` 避免消费方需要额外查找表，读写 `localStorage`） ~15min
-- [ ] T-005: 购买面板状态机 Hook 与 8 种状态的视觉呈现（「已购买」`useState` 初始值必须为 `false`（与 SSR 一致，避免 hydration mismatch），在 `useEffect` 内挂载后再从 `purchaseStore.getPurchases()` 按 courseId 恢复；已购买态短路优先于前置条件；`isApproving`/`isBuying` 瞬时态需先于 `needs-approval`/`ready-to-buy` 稳定态判断，否则点击按钮后的 loading 反馈不可达） ~30min
+- [ ] T-005: 购买面板状态机 Hook 与 8 种状态的视觉呈现（「已购买」用 `useSyncExternalStore(subscribePurchases, ...)` 读取，`getServerSnapshot` 恒为 `false` 避免 hydration mismatch，`recordPurchase()` 写入后自动重渲染，无需手动 `setState`；已购买态短路优先于前置条件；`isApproving`/`isBuying` 瞬时态需先于 `needs-approval`/`ready-to-buy` 稳定态判断，否则点击按钮后的 loading 反馈不可达） ~30min
 - [ ] T-006: 两阶段交易按钮组件（Approve→Purchase 形态过渡 + Mock 异步等待） ~30min
 
 ### 功能 3: 购买后集成

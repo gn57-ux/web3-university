@@ -46,9 +46,11 @@ type PurchaseState =
   | "purchased"
 ```
 
-状态推导逻辑：「是否已购买」`useState` **必须初始化为 `false`**（与服务端渲染结果一致，避免 Next.js 的 hydration mismatch——`localStorage` 仅在浏览器可用，若直接用它计算初始值，服务端渲染出的 `false` 与客户端首次渲染可能出现的 `true` 会不一致）。真正的恢复逻辑放在 `useEffect(() => { ... }, [])` 中：组件挂载后（客户端 hydration 完成后）调用 `purchaseStore.getPurchases()` 按当前 `courseId` 查找是否已有记录，若存在则 `setIsPurchased(true)`。这意味着已购买用户在页面刷新时会有一瞬间（首次渲染）展示未购买态，随后在 effect 执行后立刻切换为 `purchased`；如需避免这一瞬间的视觉闪烁，可额外引入 `isRestoringPurchase`（初始 `true`，effect 执行完毕后置 `false`）在恢复完成前展示购买面板的骨架屏，而不是先展示错误的"未购买"文案。
+状态推导逻辑：「是否已购买」用 `useSyncExternalStore(subscribePurchases, () => getPurchases().some(...), () => false)` 读取（**实现阶段对原方案的技术调整**：最初设计是 `useState(false)` + `useEffect` 里 `setState` 恢复，但 `eslint-plugin-react-hooks` 的 `set-state-in-effect` 规则会拒绝"在 effect 内直接同步 setState"这一写法，其官方推荐替代方案正是 `useSyncExternalStore`——它专为"读取外部可变状态（如 localStorage）且需要 SSR 安全的初始值"设计）。`getServerSnapshot` 恒返回 `false`，服务端渲染与客户端首次渲染结果一致，不产生 hydration mismatch；`purchaseStore.ts` 内维护一个订阅者集合，`recordPurchase()` 写入成功后调用 `notifyListeners()`，`useSyncExternalStore` 会据此自动重新渲染为 `purchased` 态，**不需要**在 `buy()` 里手动 `setIsPurchased(true)`。相比原方案，不再需要额外的 `isRestoringPurchase` 骨架态标志——`useSyncExternalStore` 的 hydration 后自动重渲染发生得足够快，不需要手动管理"恢复中"这一中间态。
 
 状态推导除「是否已购买」「是否已授权」外，还需两个独立的**瞬时动作**布尔值 `isApproving`、`isBuying`（点击对应按钮后置 `true`，Mock 异步 `setTimeout` 结束后置回 `false` 并翻转 `isApproved`/`purchased`）。
+
+**等待期间前置条件失效的处理**：`approve()`/`buy()` 发起时会闭包捕获当时的 `state`，但 `setTimeout` 真正触发时（800-1500ms 之后）钱包可能已被用户从 `TopNav` 断开、切换到错误网络或余额被清零。因此 `setTimeout` 回调**不能**无条件地 `setIsApproved(true)`/`recordPurchase(...)`，必须先通过一个持续同步最新 `wallet.connected`/`wallet.network`/`wallet.ydBalance`/`requiredBalanceYD` 的 `ref`（在 `useEffect` 里随每次渲染更新）重新校验前置条件；条件已失效则放弃本次操作（不写入购买记录、不置位 `isApproved`），让派生状态自然回落到当前真实前置条件对应的态（如 `wallet-disconnected`）。绝不能让一笔发起时合法、完成时钱包已失效的交易被静默记为成功。
 
 优先级推导为**三段式**，瞬时动作态必须排在其对应的稳定态之前判断，否则点击按钮后的 loading 反馈永远不可达（因为 `isApproving`/`isBuying` 为 `true` 时，`isApproved`/`purchased` 仍分别是 `false`/未变化，若先判断稳定态会把瞬时态"吃掉"）：
 
@@ -58,7 +60,7 @@ type PurchaseState =
 
 完整优先级顺序：**已购买(`purchased`) > 未连接 > 错误网络 > 余额不足 > 购买中(`isBuying`) > 待购买(`isApproved` 且非购买中) > 授权中(`isApproving`) > 未授权(其余情况)**。
 
-`components/course-detail/PurchasePanel.tsx`：根据 `PurchaseState` 渲染对应文案与按钮，按钮点击触发 Mock 异步流程（`setTimeout` 模拟 800-1500ms 等待），依次将「未授权→授权中→已授权（待购买）」「待购买→购买中→已购买」推进。
+`components/course-detail/PurchasePanel.tsx`：根据 `PurchaseState` 渲染对应文案与按钮，按钮点击触发 Mock 异步流程（`setTimeout` 模拟 800-1500ms 等待），依次将「未授权→授权中→已授权（待购买）」「待购买→购买中→已购买」推进。**`insufficient-balance` 态必须渲染一个真实可点击的「Mock 领取 {requiredBalanceYD} YD（Faucet）」按钮**，`onClick` 调用 `wallet.setYdBalance(requiredBalanceYD)`（见 F-008）——否则默认 Mock 余额（16 YD，来自 feature 1 `mockCurrentUser`）低于本课程所需（20 YD），用户将永远卡在余额不足态，无法通过页面本身走通完整购买链路。
 
 ### 模块 3: 两阶段交易按钮组件
 
@@ -66,7 +68,7 @@ type PurchaseState =
 
 ### 模块 4: 购买记录写入共享 Mock Store
 
-购买成功后，调用 `lib/mock/purchaseStore.ts` 提供的 `recordPurchase(courseId, courseName, priceYD)` 方法，将记录（含 `courseName`）写入 `localStorage`（key 如 `mock_purchases`）。该 Store 是可选的跨 feature 集成点：feature 5（学习中心）、feature 6（个人中心）可选择读取此记录来判断"是否已购买"及渲染课程名，但均需自带默认 fixtures，不强制依赖此写入才能渲染。
+购买成功后，调用 `lib/mock/purchaseStore.ts` 提供的 `recordPurchase(courseId, courseName, priceYD)` 方法，将记录（含 `courseName`）写入 `localStorage`（key 如 `mock_purchases`）。`purchaseStore.ts` 同时导出 `subscribePurchases(listener)`（用于 `useSyncExternalStore`，见模块 2）：内部维护一个 tab 内订阅者集合并在写入后 `notify`，同时监听浏览器原生 `storage` 事件以支持跨 tab 同步。该 Store 是可选的跨 feature 集成点：feature 5（学习中心）、feature 6（个人中心）可选择用同样的 `useSyncExternalStore(subscribePurchases, ...)` 模式读取此记录来判断"是否已购买"及渲染课程名，但均需自带默认 fixtures，不强制依赖此写入才能渲染。
 
 **涉及层及关键设计:**
 
