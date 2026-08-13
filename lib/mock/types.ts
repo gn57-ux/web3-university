@@ -18,6 +18,7 @@ export interface Lesson {
   title: string;
   order: number;
   isPreview: boolean;
+  durationMinutes: number;
 }
 
 export type UserRole = "student" | "teacher" | "owner";

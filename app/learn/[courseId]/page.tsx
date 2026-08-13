@@ -1,5 +1,7 @@
-import { getCourseDetail } from "@/lib/mock/courseDetails";
 import { notFound } from "next/navigation";
+import { LearningCenter } from "@/components/learning-center/LearningCenter";
+import { getCourseDetail } from "@/lib/mock/courseDetails";
+import { mockLessons } from "@/lib/mock/fixtures";
 
 export default async function LearningCenterPage(props: PageProps<"/learn/[courseId]">) {
   const { courseId } = await props.params;
@@ -9,12 +11,9 @@ export default async function LearningCenterPage(props: PageProps<"/learn/[cours
     notFound();
   }
 
+  const lessons = mockLessons.filter((lesson) => lesson.courseId === courseId);
+
   return (
-    <div className="container-app py-stack-lg">
-      <h1 className="font-heading text-headline-lg text-on-surface">{course.title}</h1>
-      <p className="mt-stack-sm text-body-md text-on-surface-variant">
-        学习中心页面建设中，敬请期待。
-      </p>
-    </div>
+    <LearningCenter key={courseId} courseId={courseId} courseTitle={course.title} lessons={lessons} />
   );
 }
