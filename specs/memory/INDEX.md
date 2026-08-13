@@ -8,3 +8,4 @@
 - ["仅桌面显示" 元素必须同步设计移动端替代方案，否则 Codex Review 必抓](responsive-header-checklist.md) — 响应式导航/无障碍三类高频问题清单 | tags: responsive,mobile,accessibility,aria-label
 - [从 localStorage 派生 SSR 安全状态用 useSyncExternalStore，不要用 useState+useEffect](use-sync-external-store-for-localstorage.md) — 规避 set-state-in-effect 规则，附跨 tab 同步实现 | tags: react,hooks,useSyncExternalStore,localStorage,hydration,set-state-in-effect
 - [Mock 异步操作完成时必须重新校验前置条件](mock-async-revalidate-prereqs.md) — setTimeout 回调用 ref 重新校验，避免陈旧闭包提交失效副作用 | tags: react,mock,setTimeout,race-condition,stale-closure,wallet
+- [改共享 mock fixture 定价前先确认记录是否已被其他 feature 引用](shared-fixture-price-scope.md) — design.md"若未收录"类判断落地前要 grep 验证，别只看目标 feature 是否已实现 | tags: mock-data,fixtures,pricing,shared-state,design-doc,scope
