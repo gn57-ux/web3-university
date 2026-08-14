@@ -5,6 +5,7 @@
 | 日期 | 版本 | 说明 |
 | --- | --- | --- |
 | 2026-08-12 | v1 | 初始设计 |
+| 2026-08-13 | v2 | Mock 钱包身份/连接/网络层 → 真实 Privy 登录 + 嵌入式钱包 |
 
 ## 项目架构
 
@@ -87,29 +88,73 @@
 - `tailwind.config.ts`：`colors`、`fontFamily`、`borderRadius`、`spacing`、`screens`（补充或对齐 tablet/desktop 断点）。
 - `app/globals.css`：暗色模式基底 `background`/`color`，字体变量注入。
 
-### 模块 3: Mock 数据类型与 Mock 钱包状态
+### 模块 3: Mock 数据类型与钱包状态（身份/连接层已于 v2 替换为真实 Privy）
 
-- `lib/mock/types.ts`：定义 `Course`、`Lesson`、`User`、`Certificate`、`Transaction`、`TeacherApplication` 等接口，字段参考 `docs/PRD.md` 第 7-8 节的链上/链下字段设计（仅借用字段命名，不做真实链上读写）。
-- `lib/mock/fixtures.ts`：提供最小可用的示例数据集（后续 feature 可扩展/覆盖）。
-- `lib/wallet/useMockWallet.ts`（或 `WalletProvider` + Context）：`{ connected, address, ydBalance, network, connect, disconnect, setNetwork, setYdBalance }`，内部用 `useState` 模拟，无外部依赖。`setNetwork(network: "sepolia" | "mainnet" | "unsupported")` 与 `setYdBalance(amount: number)` 是供页面（尤其是 feature 4 的购买面板）手动触发"错误网络""余额不足"等 Mock 场景的必要接口，否则这些状态在 `connect`/`disconnect` 二元 API 下无法被构造，导致 F-004 中要求的「需切换网络」「YD 余额不足」分支无法实现或验证。开发/演示环境可在页面上提供隐藏的调试面板或按钮调用这两个方法，供 4.T-008 的全流程手动联调使用。
+- `lib/mock/types.ts`：定义 `Course`、`Lesson`、`User`、`Certificate`、`Transaction`、`TeacherApplication` 等接口，字段参考 `docs/PRD.md` 第 7-8 节的链上/链下字段设计（仅借用字段命名，不做真实链上读写）。**v2 不变**。
+- `lib/mock/fixtures.ts`：提供最小可用的示例数据集（后续 feature 可扩展/覆盖）。**v2 不变**。
+- ~~`lib/wallet/useMockWallet.ts`（或 `WalletProvider` + Context）：`{ connected, address, ydBalance, network, connect, disconnect, setNetwork, setYdBalance }`，内部用 `useState` 模拟，无外部依赖。~~
+
+**`[v2 修改]` `lib/wallet/useWallet.tsx`（文件与导出符号均从 `useMockWallet` 重命名为 `useWallet`，理由见下方技术决策）：**
+
+- 依赖新增 `@privy-io/react-auth`（Privy React SDK，内部依赖 `viem`）。
+- `PrivyProvider` 配置（在 `app/layout.tsx` 挂载，见模块 4）：
+  ```ts
+  {
+    appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
+    config: {
+      loginMethods: ["email"],                 // 仅 Email 登录，不含短信/社交/外部钱包连接
+      embeddedWallets: { createOnLogin: "users-without-wallets" }, // 自动创建 Ethereum 嵌入式钱包
+      defaultChain: sepolia,                    // viem/chains 的 sepolia 定义
+      supportedChains: [sepolia],
+      appearance: { theme: "dark", accentColor: "#7c3aed" }, // 贴近项目 primary 色，Privy 模态框本身样式由 Privy 托管，不做逐像素还原
+    },
+  }
+  ```
+- `useWallet()` 包装 Privy 提供的 `usePrivy()`/`useWallets()`，对外暴露与旧 API 尽量对齐、但语义已调整的字段：
+  - `connected: boolean` — 来自 `ready && authenticated`
+  - `address: string | null` — `wallets[0]?.address ?? null`（**未登录为 `null`，旧版本恒为字符串，是破坏性变化**，全部消费方需要补充判空/加载态处理）
+  - `network: "sepolia" | "wrong-network" | null` — 未登录为 `null`；已登录时按嵌入式钱包当前 `chainId` 是否等于 Sepolia 判定
+  - `authError: string | null` — 捕获 `login()`/`switchToSepolia()` 抛出的错误信息（用户取消、Privy 初始化失败等），成功后清空
+  - `login(): void` — 调用 Privy `login()` 打开登录模态框（异步、可能被取消，不像旧 `connect()` 是同步状态翻转）
+  - `logout(): Promise<void>` — 调用 Privy `logout()`
+  - `switchToSepolia(): Promise<void>` — 调用嵌入式钱包的 `switchChain(sepolia.id)`，失败时写入 `authError`
+  - `ydBalance: number` / `setYdBalance(amount: number): void` — **原样保留**，用 `useState` 维护，与 Privy 状态完全独立（不因登录/登出重置，保持当前"演示态余额"的连续性，直到刷新页面）
 
 **涉及层及关键设计:**
 
-- 纯前端状态管理（React Context + `useState`/`useReducer`），无持久化要求（如需跨页面保留购买记录等状态，由具体 feature 决定是否使用 `localStorage`，本 feature 只提供基础设施）。
+- 纯前端状态管理，`connected`/`address`/`network`/`authError` 来自 Privy SDK（真实、异步、可能失败），`ydBalance` 继续是本地 `useState` 模拟，两者共存于同一个 `WalletProvider`/`useWallet()` 返回值中，消费方无需区分数据来源。
+- 无持久化要求（Privy 自身处理登录态的跨刷新保持；`ydBalance` 刷新后重置为初始 Mock 值，与 v1 行为一致，不在本次变更范围内调整）。
 
 ### 模块 4: 全局导航与页脚
 
-- `components/layout/TopNav.tsx`：Logo、导航链接（首页/课程广场/老师工作台/Owner 后台）、钱包状态徽标（消费模块 3 的 Hook）、网络徽标。
-- `components/layout/Footer.tsx`：链接列表 + 版权 + Sepolia Testnet 声明。
-- `app/layout.tsx`：引入字体、`TopNav`、`Footer`、根级 `WalletProvider`。
+- `components/layout/TopNav.tsx`：Logo、导航链接（首页/课程广场/老师工作台/Owner 后台）、钱包状态徽标（消费模块 3 的 Hook）、网络徽标。`[v2 修改]` 徽标逻辑：未登录展示"登录"按钮（`onClick={login}`）；`ready` 为 `false` 或登录流程进行中展示 loading 骨架；已登录展示 `address` 缩略 + 绿色状态点；`network === "wrong-network"` 时网络徽标变为警示配色（`tertiary`/`error` 二选一，实现时对照 Stitch 截图确认）且可点击触发 `switchToSepolia()`；`authError` 非空时在徽标旁展示一个小图标 + `title`/tooltip 显示错误文案（不打断其它 UI）。
+- `components/layout/Footer.tsx`：链接列表 + 版权 + Sepolia Testnet 声明。**v2 不变**。
+- `app/layout.tsx`：引入字体、`TopNav`、`Footer`、根级 `WalletProvider`。`[v2 修改]` `WalletProvider` 内部改为先挂载 `PrivyProvider`（见模块 3 配置），`ydBalance` 状态维护在 `PrivyProvider` 内层的一个轻量 Context 中（或直接在同一个自定义 `WalletProvider` 里用 `usePrivy()` + 本地 `useState` 组合实现，二者取决于实现时的封装偏好，接口对消费方透明）。
 
 **涉及层及关键设计:**
 
 - 组件 props 明确 TypeScript 化；导航链接使用 Next.js `Link`。
+- `[v2 新增]` `PrivyProvider` 必须是 Client Component 边界内的顶层 Provider（`app/layout.tsx` 本身是 Server Component，需要一个 `"use client"` 的包装组件，复用/扩展现有的 `WalletProvider` 承担这个角色，避免额外新增文件）。
 
 ## 接口契约
 
-无（当前阶段无真实 API/RPC/合约接口，全部为组件 props 与本地 Mock 状态）。
+`[v2 新增]` `lib/wallet/useWallet.tsx` 对外暴露的 Hook 接口（唯一的"真实"接口边界，其余仍是组件 props 与本地 Mock 状态）：
+
+```ts
+interface WalletState {
+  connected: boolean
+  address: string | null
+  network: "sepolia" | "wrong-network" | null
+  authError: string | null
+  login: () => void
+  logout: () => Promise<void>
+  switchToSepolia: () => Promise<void>
+  ydBalance: number
+  setYdBalance: (amount: number) => void
+}
+```
+
+无真实后端 API/RPC/合约接口——Privy SDK 内部与 Privy 云服务通信，本仓库不直接发起相关网络请求。
 
 ## 数据模型（Mock，仅前端内存/类型定义）
 
@@ -165,8 +210,9 @@ interface TeacherApplication {
 
 ## 安全考虑
 
-- 遵循 `.claude/rules/security.md`：不引入任何真实密钥、RPC 私钥或第三方登录 SDK；Mock 钱包地址、余额等均为硬编码/内存生成的假数据。
-- 遵循 `.claude/rules/frontend.md`：设计还原必须基于 Stitch MCP 实际读取到的数据（本设计文档的令牌与结构均来自上述 MCP 调用），不得凭截图猜测。
+- 遵循 `.claude/rules/security.md`：~~不引入任何真实密钥、RPC 私钥或第三方登录 SDK~~ `[v2 修改]` 引入真实第三方登录 SDK（Privy），`NEXT_PUBLIC_PRIVY_APP_ID` 通过 `.env.local` 管理、提供 `.env.example`，不提交真实值；嵌入式钱包私钥由 Privy 托管，本仓库代码不存储/不接触任何私钥或助记词。`ydBalance` 等继续是硬编码/内存生成的假数据。
+- 遵循 `.claude/rules/frontend.md`：设计还原必须基于 Stitch MCP 实际读取到的数据（本设计文档的令牌与结构均来自上述 MCP 调用），不得凭截图猜测。`[v2 说明]` 本次变更的功能范围（真实登录）在原设计稿之外，UI 视觉沿用现有 Stitch 令牌与组件样式，Privy 登录模态框本身样式由 Privy SDK 托管、仅做主题色对齐，不追求逐像素还原。
+- `[v2 新增]` 本次变更明确不接入 YD Token 合约、课程购买合约、Supabase——`ydBalance`/购买/证书等业务逻辑继续 100% Mock，只有"身份是谁、钱包地址是什么、当前在哪条链"这三件事变为真实。
 
 ## 技术决策
 
@@ -174,4 +220,7 @@ interface TeacherApplication {
 | --- | --- | --- |
 | 图标库 | Lucide React | 用户指令明确指定 |
 | 字体加载方式 | `next/font` | Next.js 官方推荐，自动子集化与自托管，避免额外网络请求 |
-| Mock 钱包状态管理 | React Context + useState（不引入 Zustand/Redux 等） | 当前阶段状态简单，无需引入额外状态管理库，避免过度设计 |
+| Mock 钱包状态管理 | React Context + useState（不引入 Zustand/Redux 等） | 当前阶段状态简单，无需引入额外状态管理库，避免过度设计（v1 决策，v2 起身份/连接层改为真实但仍不引入额外状态库） |
+| `[v2]` 钱包身份/连接层实现 | Privy React SDK（`@privy-io/react-auth`），仅 Email 登录 + 自动创建 Ethereum 嵌入式钱包 | 用户指令明确指定；嵌入式钱包免去用户预装浏览器插件钱包的门槛，符合"登录即用"的产品定位；本阶段不做外部钱包连接（MetaMask/WalletConnect/多钱包绑定），缩小变更面 |
+| `[v2]` `useMockWallet` → `useWallet` 重命名 | 正式改名，删除 `Mock` 字样 | 身份/连接/网络已是真实数据，继续叫 "Mock" 会误导后续开发者；改名的代价（4 个消费方文件的 import 路径与函数名同步修改）在本次变更范围内一次性付清，好于长期留着误导性命名 |
+| `[v2]` `ydBalance` 是否随 Privy 一起重构 | 保留独立 Mock 状态，不接入任何真实数据源 | 用户明确本次不接入 YD 合约；`ydBalance` 与"这是谁的钱包"无必然耦合，拆开处理让变更边界清晰，且完全不影响 feature 4 已实现的购买状态机后半段（授权/购买/余额判断）逻辑 |

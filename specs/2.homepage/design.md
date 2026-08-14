@@ -5,6 +5,7 @@
 | 日期 | 版本 | 说明 |
 | --- | --- | --- |
 | 2026-08-12 | v1 | 初始设计 |
+| 2026-08-13 | v2 | Hero 连接钱包 CTA 接入真实 `useWallet()`（随 1.wallet-auth 变更联动） |
 
 ## 项目架构
 
@@ -28,7 +29,7 @@
 
 ### 模块 1: Hero 区块
 
-`components/home/Hero.tsx`：使用设计令牌 `font-display`（Sora 48px/32px 移动端）渲染主标题，`body-lg`（Inter）渲染副文案。两个 CTA 按钮：主按钮（`primary-container` 紫罗兰实心，`rounded-md`）「浏览课程」→ `Link href="/courses"`；次按钮（描边或次级样式）「连接钱包」→ 调用 `useMockWallet().connect()`。
+`components/home/Hero.tsx`：使用设计令牌 `font-display`（Sora 48px/32px 移动端）渲染主标题，`body-lg`（Inter）渲染副文案。两个 CTA 按钮：主按钮（`primary-container` 紫罗兰实心，`rounded-md`）「浏览课程」→ `Link href="/courses"`；次按钮（描边或次级样式）「连接钱包」→ ~~调用 `useMockWallet().connect()`~~ `[v2 修改]` 调用 `useWallet().login()`（`import` 路径改为 `@/lib/wallet/useWallet`，见 1.project-foundation-design-system 的 v2 变更）。按钮三态：未登录「连接钱包」、登录中禁用态 + loading 指示、已登录展示 `address` 缩略（复用 `truncateAddress` 辅助函数，`address` 现在可能为 `null`，未登录/加载中都按"未登录"UI 处理，不解构失败）。
 
 **涉及层及关键设计:**
 

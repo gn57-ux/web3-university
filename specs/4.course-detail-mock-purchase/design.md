@@ -5,6 +5,7 @@
 | 日期 | 版本 | 说明 |
 | --- | --- | --- |
 | 2026-08-12 | v1 | 初始设计 |
+| 2026-08-13 | v2 | `wallet-disconnected`/`wrong-network` 前置状态接入真实 `useWallet()`（随 1.wallet-auth 变更联动），其余状态不变 |
 
 ## 项目架构
 
@@ -59,6 +60,8 @@ type PurchaseState =
 3. 前置条件均满足后，**先查瞬时动作态，再查稳定态**：`isBuying` → `buying`；否则 `isApproved && !isBuying` → `ready-to-buy`；否则 `isApproving` → `approving`；否则（`!isApproved && !isApproving`）→ `needs-approval`。
 
 完整优先级顺序：**已购买(`purchased`) > 未连接 > 错误网络 > 余额不足 > 购买中(`isBuying`) > 待购买(`isApproved` 且非购买中) > 授权中(`isApproving`) > 未授权(其余情况)**。
+
+**`[v2 说明]`** `wallet.connected`/`wallet.network` 改为读自真实 `useWallet()`（1.wallet-auth 变更）后，上述推导逻辑**代码层面基本不需要改**：`if (!wallet.connected) return "wallet-disconnected"` 与 `if (wallet.network !== "sepolia") return "wrong-network"` 这两行对新的类型（`connected: boolean` 不变；`network: "sepolia" | "wrong-network" | null`，未登录时为 `null`）依然成立——`!wallet.connected` 判断在前，未登录时不会走到 `network` 判断，不存在 `null` 被误判的问题。真正需要改的只是：1）`wallet.connect` → `wallet.login`（`PurchasePanel.tsx` "连接钱包"按钮）；2）`wallet.setNetwork("sepolia")` → `wallet.switchToSepolia()`（`PurchasePanel.tsx` "切换到 Sepolia"按钮，注意新方法是 `Promise<void>`、可能失败，`onClick` 处理器不需要 `await`/捕获错误——失败信息由 `useWallet()` 的 `authError` 统一在 `TopNav` 展示，`PurchasePanel` 不需要重复展示）；3）import 路径 `useMockWallet` → `useWallet`。`insufficient-balance` 起的所有后续状态（Mock 余额、授权、购买）完全不受影响。
 
 `components/course-detail/PurchasePanel.tsx`：根据 `PurchaseState` 渲染对应文案与按钮，按钮点击触发 Mock 异步流程（`setTimeout` 模拟 800-1500ms 等待），依次将「未授权→授权中→已授权（待购买）」「待购买→购买中→已购买」推进。**`insufficient-balance` 态必须渲染一个真实可点击的「Mock 领取 {requiredBalanceYD} YD（Faucet）」按钮**，`onClick` 调用 `wallet.setYdBalance(requiredBalanceYD)`（见 F-008）——否则默认 Mock 余额（16 YD，来自 feature 1 `mockCurrentUser`）低于本课程所需（20 YD），用户将永远卡在余额不足态，无法通过页面本身走通完整购买链路。
 

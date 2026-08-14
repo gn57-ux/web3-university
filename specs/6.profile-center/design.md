@@ -5,6 +5,7 @@
 | 日期 | 版本 | 说明 |
 | --- | --- | --- |
 | 2026-08-12 | v1 | 初始设计 |
+| 2026-08-13 | v2 | 头部地址接入真实 `useWallet()`，新增登录门禁（随 1.wallet-auth 变更联动） |
 
 ## 项目架构
 
@@ -27,9 +28,15 @@
 
 ## 功能模块设计
 
+### 模块 0: 登录门禁 `[NEW v2]`
+
+`app/profile/page.tsx` 顶层逻辑：读取 `useWallet().connected`。未登录 → 渲染 `components/profile/LoginRequiredGate.tsx`（结构参考 `components/learning-center/PurchaseRequiredGate.tsx`：图标 + "请先登录"文案 + 登录按钮，`onClick={login}`），不渲染 `ProfileHeader`/`ProfileTabs`/`EditUsernameModal` 中的任何一个。已登录 → 正常渲染模块 1-3 的完整内容。
+
+`useWallet()` 的 `connected` 是同步可读的 Privy 状态（非 `localStorage` 派生），不存在 feature 4/5 那类"`useSyncExternalStore` 避免 hydration mismatch"的问题——Privy SDK 自身处理首次加载时的 `ready` 状态，`connected` 在 `ready` 为 `false` 期间应视为"未登录"处理（门禁态），不需要额外的骨架屏。
+
 ### 模块 1: 个人信息头部
 
-`components/profile/ProfileHeader.tsx`：读取 `useMockWallet()` 的 `address`/`ydBalance`，本地 `useState<string>` 管理用户名（初始值来自 `lib/mock/currentUser.ts`）。
+`components/profile/ProfileHeader.tsx`：~~读取 `useMockWallet()` 的 `address`/`ydBalance`~~ `[v2 修改]` 读取 `useWallet()` 的 `address`（`import` 路径改为 `@/lib/wallet/useWallet`；模块 0 门禁已保证渲染到这里时 `connected` 必为 `true`，但 `address` 类型仍是 `string | null`，实现时按"门禁已排除未登录情况"简单处理为非空断言或 fallback 空字符串均可，二者选一，不需要再画一层门禁）与 `ydBalance`（Mock，不变），本地 `useState<string>` 管理用户名（初始值来自 `lib/mock/currentUser.ts`，不变）。
 
 ### 模块 2: 修改用户名 Modal
 
@@ -70,7 +77,8 @@
 
 ## 安全考虑
 
-- "钱包签名确认"仅为 Mock UI 等待态，不调用任何真实签名 API；文案中避免出现可能让用户误以为是真实链上操作的措辞歧义（可在按钮旁加小字"演示模式"提示，视实现时是否与设计稿冲突而定，若冲突则不强制加）。
+- "钱包签名确认"仅为 Mock UI 等待态，不调用任何真实签名 API；文案中避免出现可能让用户误以为是真实链上操作的措辞歧义（可在按钮旁加小字"演示模式"提示，视实现时是否与设计稿冲突而定，若冲突则不强制加）。**`[v2 说明]`** 这一条不受本次变更影响——用户名签名确认继续是 Mock，本次只把"你是谁"（地址）换成真实的，不涉及真实消息签名。
+- `[v2 新增]` 未登录用户不应能看到任何登录用户的资料/Tab 内容（门禁必须在渲染层面直接不渲染，而不是渲染后用 CSS 隐藏），避免真实场景下的信息泄露；当前阶段无多用户区分（单一 Privy App 下每个真实登录会话对应各自的真实地址，`ProfileHeader` 展示的就是当前登录者自己的地址，不存在越权查看他人资料的路径）。
 
 ## 技术决策
 
@@ -78,3 +86,5 @@
 | --- | --- | --- |
 | 购买记录数据来源 | 优先读 `localStorage`（feature 4 写入），回退本地 fixtures | 保证 feature 4/6 各自独立开发时都可验收，同时又支持串起来演示的场景 |
 | 证书虹彩边框实现 | 纯 CSS（渐变边框 + `animate-pulse`），不引入额外动画库 | 单一样式效果，CSS 足以实现，无需引入 Framer Motion 等库 |
+| `[v2]` 登录门禁的组件结构 | 新建 `LoginRequiredGate.tsx`，视觉复用 `PurchaseRequiredGate.tsx` 的模式（不做成共享组件抽象） | 两者文案/触发动作不同（登录 vs 购买），且当前只有两处用到，抽公共组件属于当前阶段用不到的预先抽象；后续若第三处需要类似门禁再考虑抽取 |
+| `[v2]` 门禁判定时机 | 直接读 `useWallet().connected`（同步），不额外加 loading/骨架态 | Privy 的 `ready` 状态已经内建在 `connected` 判定里（`connected = ready && authenticated`），未就绪期间自然落入"未登录"门禁态，不需要为 Privy 自身的初始化过程再设计一层临时态 |

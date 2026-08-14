@@ -5,6 +5,7 @@
 | 日期 | 版本 | 说明 |
 | --- | --- | --- |
 | 2026-08-12 | v1 | 初始任务 |
+| 2026-08-13 | v2 | 需求/设计已记录钱包身份层变更说明；对应实现任务集中在 [[10.wallet-auth-integration]]，本文件任务列表不新增任务 |
 
 ## 项目信息
 
@@ -44,3 +45,4 @@
 
 - Tailwind 令牌命名若与后续 feature 实际用到的 class 不完全对应，需要在实现时按 `design.md` 的颜色/字体表逐项核对，避免遗漏（如 `surface-container-highest` 等深层级色未被用到就先跳过）。
 - `next/font` 若无法直接获取 Sora/JetBrains Mono（非 Google Fonts 默认收录字体命名差异），需实现时通过 Stitch MCP 或设计系统 `designMd` 字段二次确认字体来源，必要时使用本地字体文件兜底。
+- `[v2]` 本 feature 的 `requirements.md`/`design.md` 记录了 Mock 钱包 → 真实 Privy 登录的变更说明（`F-005`/`F-006`/`F-008` 等标注 `[v2 修改]`），但实现任务已集中到 [[10.wallet-auth-integration]]（T-001~T-003 对应本 feature 的改动），避免本 feature 任务数超出 4-8 个约束；`useMockWallet` → `useWallet` 的重命名与实际接入以 Feature 10 的 tasks.md 为准执行。

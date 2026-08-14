@@ -5,6 +5,7 @@
 | 日期 | 版本 | 说明 |
 | --- | --- | --- |
 | 2026-08-12 | v1 | 初始任务 |
+| 2026-08-13 | v2 | 需求/设计已记录接入真实 `useWallet()` + 新增登录门禁的变更说明；对应实现任务集中在 [[10.wallet-auth-integration]]，本文件任务列表不新增任务 |
 
 ## 项目信息
 
@@ -40,3 +41,4 @@
 ## 风险点
 
 - 若开发顺序上 feature 6 早于 feature 4 完成，`purchaseStore` 模块尚不存在，需按 design.md 约定的接口签名（`getPurchases(): MockPurchaseRecord[]`）先行实现一个空实现或本地占位版本，待 feature 4 完成后再对齐，避免相互阻塞。
+- `[v2]` 本 feature 的 `requirements.md`/`design.md` 记录了接入真实 `useWallet()` + 新增登录门禁的变更说明（`F-001`/`F-008`/`AC-001`/`AC-005` 标注 `[v2 修改/新增]`），但实现任务已集中到 [[10.wallet-auth-integration]] 的 T-007，避免本 feature 任务数超出约束。门禁必须在**渲染层面**排除未登录内容（不渲染，而不是渲染后隐藏）这一约束，实现时以 Feature 10 的 design.md/tasks.md 为准。

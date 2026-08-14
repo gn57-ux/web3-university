@@ -12,7 +12,7 @@ Web3 在线课程 DApp：链上 YD Token 支付 + NFT 课程证书，链下承�
 ## 当前阶段范围（重要）
 
 - 只实现 Stitch 设计稿对应的静态 UI 和 Mock 交互（本地假数据 / `useState` / `localStorage`）。
-- **不**接入真实钱包（Privy/wagmi/viem）、**不**接入数据库（Supabase）、**不**接入真实智能合约调用。
+- 当前阶段允许接入 Privy Email 登录和 Ethereum 嵌入式钱包；YD 余额、Faucet、课程支付及其他链上业务继续使用 Mock。仅 Email 登录，不接外部钱包/MetaMask/WalletConnect。**不**接入数据库（Supabase）、**不**接入真实智能合约调用（YD Token、课程购买、证书铸造等合约）。
 - PRD（`docs/PRD.md`）描述的是完整目标产品形态，用于理解业务背景，不代表本阶段要实现的范围。
 - 现有 `contracts/` 下的 Solidity 示例合约（`PrivateBank.sol`、`EthRedPacket.sol`）保持不变，禁止删除或修改。
 

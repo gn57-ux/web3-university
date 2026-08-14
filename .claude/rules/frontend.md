@@ -11,13 +11,13 @@ paths:
 ## 技术栈
 
 - Next.js（App Router）+ TypeScript + Tailwind CSS。
-- 目标最终技术栈另含 Privy（登录/钱包）、Viem（链交互）、Supabase（数据库），但**均不在本阶段实现范围内**。
+- 当前阶段允许接入 Privy Email 登录和 Ethereum 嵌入式钱包；YD 余额、Faucet、课程支付及其他链上业务继续使用 Mock。目标最终技术栈另含 Viem（链交互）、Supabase（数据库），**均不在本阶段实现范围内**。
 
 ## 本阶段范围（严格遵守）
 
 - 只实现 Stitch 设计稿对应的静态 UI 和 Mock 交互：页面布局、组件样式、状态切换（如 loading/已购买/未购买等按钮态）均可用本地假数据和 `useState`/内存 mock 实现。
-- 不接入真实钱包连接（不引入 Privy/wagmi/viem 的实际调用）、不接入真实数据库（不写 Supabase 客户端代码）、不发起真实合约调用。
-- 涉及"连接钱包"“购买课程”等交互时，用 mock 函数模拟异步流程（如 `setTimeout` + 状态切换）展示 UI 反馈，不接后端。
+- 当前阶段允许接入 Privy Email 登录和 Ethereum 嵌入式钱包（真实身份/连接/网络状态，见 `specs/10.wallet-auth-integration/`）；YD 余额、Faucet、课程支付及其他链上业务继续使用 Mock。仅支持 Email 登录，不接外部钱包、MetaMask、WalletConnect；`NEXT_PUBLIC_PRIVY_APP_ID` 只通过环境变量读取，真实值只存在于本地 `.env.local`，`.env.example` 只能写占位符。不接入真实数据库（不写 Supabase 客户端代码）、不发起真实合约调用（YD Token、课程购买、证书铸造等）。
+- 涉及"购买课程"等业务交互时，用 mock 函数模拟异步流程（如 `setTimeout` + 状态切换）展示 UI 反馈，不接后端；"连接钱包"/登录/退出/切换网络走真实 Privy SDK。
 - 页面信息架构参考 `docs/PRD.md` 第 13 节（`/`、`/courses`、`/courses/[courseId]`、`/profile`、`/teacher`、`/admin`），但页面内容以 Stitch 设计稿为准，PRD 仅作业务背景参考。
 
 ## 设计稿还原（强制）
