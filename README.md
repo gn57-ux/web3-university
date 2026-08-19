@@ -1,9 +1,10 @@
 # Web3 University
 
-Web3 在线课程 DApp：链上 YD Token 支付 + NFT 课程证书，链下承载视频/评论/进度。仓库包含两部分：
+Web3 在线课程 DApp：链上 YD Token 支付 + NFT 课程证书，链下承载视频/评论/进度。仓库包含三部分：
 
-- **前端**（仓库根目录）：Next.js + TypeScript + Tailwind CSS 实现的 Stitch 设计稿静态 UI 与 Mock 交互，**当前阶段已接入 Privy Email 登录 + Ethereum 嵌入式钱包（真实身份/连接/网络状态），YD 余额、Faucet、课程支付、NFT 证书铸造等链上业务仍为 Mock，不接入数据库/智能合约**。
-- **智能合约教学示例**（`contracts/`）：与前端无关的独立 Remix 演示合约，见文末「智能合约教学示例」章节。
+- **前端**（仓库根目录）：Next.js + TypeScript + Tailwind CSS 实现的 Stitch 设计稿静态 UI 与 Mock 交互，**当前阶段已接入 Privy Email 登录 + Ethereum 嵌入式钱包（真实身份/连接/网络状态），YD 余额、Faucet、课程支付、NFT 证书铸造等链上业务仍为 Mock，尚未接入下方的智能合约或数据库**。
+- **Web3 University 智能合约 MVP**（`contracts/web3-university/`，独立 Foundry 工程）：`YDToken`/`YDFaucet`/`Web3University`/`CourseCertificate`/`DemoCompletionOracle` 五个分离部署的合约，见下方「智能合约 MVP」章节。目前只完成合约本身（`docs/PRD.md` 里程碑一「合约闭环」），前端尚未接入真实合约调用。
+- **智能合约教学示例**（`contracts/*.sol`）：与上述 MVP 无关的独立 Remix 演示合约，见文末「智能合约教学示例」章节。
 
 ## 前端
 
@@ -81,6 +82,29 @@ lib/
 ### 部署
 
 纯静态/SSR 前端，`npm run build` 后可部署到任意支持 Next.js 的平台（Vercel 等），部署环境需配置 `NEXT_PUBLIC_PRIVY_APP_ID`（真实 App ID，不要提交到仓库），无需额外后端服务。
+
+## 智能合约 MVP（`contracts/web3-university/`）
+
+Foundry 工程，实现 `docs/PRD.md` 第 7 节的完整合约闭环，分离合约架构（架构决策见 `specs/11.yd-token-faucet/design.md`）：
+
+| 合约 | 说明 |
+| --- | --- |
+| `YDToken` | ERC-20 课程支付代币，部署时一次性铸造初始供应量，不提供追加铸造入口 |
+| `YDFaucet` | 每地址限领一次 20 YD，Owner 可补充资金 |
+| `Web3University` | 老师白名单、课程创建/审核/上下架、`buyCourse`（价格读链上课程配置）、完课确认接线 |
+| `CourseCertificate` | ERC-721 课程完成证书，仅 `Web3University` 可铸造，每 `(课程, 学生)` 组合限一枚 |
+| `DemoCompletionOracle` | 可替换的演示完课预言机，受信任提交者转发完课确认 |
+
+```bash
+cd contracts/web3-university
+forge install OpenZeppelin/openzeppelin-contracts@v5.7.0 --no-git
+forge install foundry-rs/forge-std@v1.9.7 --no-git
+forge build
+forge test        # 62/62 通过
+forge coverage --report summary   # 5 个合约源文件均 100% 行覆盖率
+```
+
+**当前状态**：合约本身已完成并通过完整单元/集成测试（含全链路本地部署脚本 `script/DeployAll.s.sol` 验证"创建课程→审核→上架→购买→确认完成→铸造证书"无断点），**尚未部署到 Sepolia，前端也尚未接入这些合约**——根目录 Next.js 应用的 YD 余额/购买/证书仍是 Mock 实现，接入真实合约调用是后续里程碑。详见 `contracts/web3-university/README.md`。
 
 ## 智能合约教学示例
 

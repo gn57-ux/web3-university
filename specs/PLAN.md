@@ -4,7 +4,7 @@
 
 来源需求：`docs/PRD.md`（业务背景）+ 本次 `/yd:prd` 输入指令（当前阶段范围约束）+ Stitch 设计稿项目 `Web3 University UI 设计系统`（`projects/8237832631308458514`，视觉表现依据）。
 
-当前阶段范围：仅实现 Stitch 设计稿对应的纯 Web UI 与 Mock 交互（Next.js App Router + TypeScript + Tailwind CSS + Lucide React）。~~不接入 Privy~~、不接入 Supabase、真实智能合约、Chainlink、The Graph、Uniswap。`contracts/` 下现有 Solidity 合约保持不变。**`[2026-08-13 起]`** Privy 已通过下方「变更记录」引入，但仅限身份/钱包连接层（登录/退出/地址/网络），不涉及 YD 合约、课程购买合约、Supabase——其余 Mock-only 边界不变。
+当前阶段范围：仅实现 Stitch 设计稿对应的纯 Web UI 与 Mock 交互（Next.js App Router + TypeScript + Tailwind CSS + Lucide React）。~~不接入 Privy~~、不接入 Supabase、~~真实智能合约~~、Chainlink、The Graph、Uniswap。`contracts/PrivateBank.sol`、`contracts/EthRedPacket.sol`（Remix 教学示例）保持不变。**`[2026-08-13 起]`** Privy 已通过下方「变更记录」引入，但仅限身份/钱包连接层（登录/退出/地址/网络），不涉及 YD 合约、课程购买合约、Supabase——其余 Mock-only 边界不变。**`[2026-08-19 起]`** Feature 11/12/13 已在 `contracts/web3-university/`（独立 Foundry 工程）落地真实智能合约 MVP（`YDToken`/`YDFaucet`/`Web3University`/`CourseCertificate`/`DemoCompletionOracle`），但前端（根目录 Next.js）尚未接入这些合约——`lib/purchase/`、`lib/wallet/` 等仍是 Mock/Privy-only 实现，接入真实合约调用是后续里程碑，不在本次范围内。
 
 | 序号 | feature | 说明 | 依赖 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -18,9 +18,9 @@
 | 8 | owner-admin-dashboard | Owner 后台：课程审核、老师白名单、完课确认铸造 | 1 | v1 已完成 |
 | 9 | responsive-visual-qa | 响应式与视觉 QA：断点走查、对照 Stitch 截图核验、问题修复 | 2,3,4,5,6,7,8 | v1 已完成 |
 | 10 | wallet-auth-integration | Mock 钱包 → 真实 Privy Email 登录 + Ethereum 嵌入式钱包（Sepolia），统一实现 1/2/4/6 已记录的钱包身份变更 | 1, 2, 4, 6 | v1 已完成 |
-| 11 | yd-token-faucet | Foundry 工程骨架 + `YDToken`（ERC-20）+ `YDFaucet`（限领水龙头） | - | 待开发 |
-| 12 | course-marketplace-contract | `Web3University`：老师白名单、课程审核上下架、`buyCourse`（价格读链上配置）、购买记录 | 11 | 待开发 |
-| 13 | course-certificate-completion | `CourseCertificate`（ERC-721）+ `DemoCompletionOracle` + `Web3University` 完课确认接线 | 12 | 待开发 |
+| 11 | yd-token-faucet | Foundry 工程骨架 + `YDToken`（ERC-20）+ `YDFaucet`（限领水龙头） | - | v1 已完成 |
+| 12 | course-marketplace-contract | `Web3University`：老师白名单、课程审核上下架、`buyCourse`（价格读链上配置）、购买记录 | 11 | v1 已完成 |
+| 13 | course-certificate-completion | `CourseCertificate`（ERC-721）+ `DemoCompletionOracle` + `Web3University` 完课确认接线 | 12 | v1 已完成 |
 
 **推荐执行顺序**：1 → 4 →（2, 3, 5, 6, 7, 8 可在 1、4 完成后并行，其中 5、6 对 4 为弱依赖） → 9 → 10（在现有 9 个 feature 全部完成后执行，10 内部任务顺序见其 tasks.md：T-001→T-002→T-003→(T-004~T-007 并行)→T-008） → 11 → 12 → 13（智能合约 MVP 三个 feature 严格串行，12 依赖 11 的 `YDToken`，13 依赖 12 的 `Web3University`）
 
