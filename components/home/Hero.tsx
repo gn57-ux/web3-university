@@ -1,15 +1,15 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useMockWallet } from "@/lib/wallet/useMockWallet";
+import { useWallet } from "@/lib/wallet/useWallet";
 
 function truncateAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 export function Hero() {
-  const { connected, address, connect } = useMockWallet();
+  const { connected, loading, address, login } = useWallet();
 
   return (
     <section className="container-app flex flex-col items-center gap-stack-md py-stack-lg text-center">
@@ -38,15 +38,17 @@ export function Hero() {
             aria-live="polite"
           >
             <Check className="size-4 shrink-0" aria-hidden="true" />
-            已连接 {truncateAddress(address)}
+            已登录 {address ? truncateAddress(address) : ""}
           </span>
         ) : (
           <button
             type="button"
-            onClick={connect}
-            className="rounded-md border border-outline-variant px-6 py-3 text-body-md font-medium text-on-surface transition-colors hover:bg-surface-container"
+            onClick={login}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 rounded-md border border-outline-variant px-6 py-3 text-body-md font-medium text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
           >
-            连接钱包
+            {loading && <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />}
+            {loading ? "加载中..." : "登录"}
           </button>
         )}
       </div>

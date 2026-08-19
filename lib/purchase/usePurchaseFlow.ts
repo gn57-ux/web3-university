@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { useMockWallet } from "@/lib/wallet/useMockWallet";
+import { useWallet } from "@/lib/wallet/useWallet";
 import { getPurchases, recordPurchase, subscribePurchases } from "@/lib/mock/purchaseStore";
 
 export type PurchaseState =
@@ -23,7 +23,7 @@ export function usePurchaseFlow(
   priceYD: number,
   requiredBalanceYD: number
 ) {
-  const wallet = useMockWallet();
+  const wallet = useWallet();
 
   // 「是否已购买」读取自共享 Mock Store（localStorage），用 useSyncExternalStore
   // 而非「useState 初值 false + useEffect 里 setState」：
@@ -32,7 +32,7 @@ export function usePurchaseFlow(
   // 该 Hook 会自动感知变化并重新渲染为 "purchased" 态，无需手动 setState。
   const isPurchased = useSyncExternalStore(
     subscribePurchases,
-    () => getPurchases().some((record) => record.courseId === courseId),
+    () => getPurchases(wallet.address).some((record) => record.courseId === courseId),
     () => false
   );
 
@@ -51,6 +51,7 @@ export function usePurchaseFlow(
     connected: wallet.connected,
     network: wallet.network,
     ydBalance: wallet.ydBalance,
+    address: wallet.address,
     requiredBalanceYD,
   });
   useEffect(() => {
@@ -58,9 +59,10 @@ export function usePurchaseFlow(
       connected: wallet.connected,
       network: wallet.network,
       ydBalance: wallet.ydBalance,
+      address: wallet.address,
       requiredBalanceYD,
     };
-  }, [wallet.connected, wallet.network, wallet.ydBalance, requiredBalanceYD]);
+  }, [wallet.connected, wallet.network, wallet.ydBalance, wallet.address, requiredBalanceYD]);
 
   function prereqsStillValid() {
     const p = prereqsRef.current;
@@ -96,29 +98,41 @@ export function usePurchaseFlow(
 
   const approve = useCallback(() => {
     if (state !== "needs-approval") return;
+    // 捕获发起授权时的账户地址：完成时不能只看"当前账户是否仍然合法"，还要
+    // 确认完成时的账户与发起时是同一个——否则账户 A 发起、等待期间切到账户 B，
+    // B 会凭空获得一个自己从未点过的"已授权"态。
+    const startAddress = wallet.address;
     setIsApproving(true);
     approveTimer.current = setTimeout(() => {
       setIsApproving(false);
       // 前置条件在等待期间失效（钱包断开/切网/余额清零）：放弃本次授权，
       // 不设置 isApproved，让派生状态回落到当前真实前置条件对应的态。
-      if (prereqsStillValid()) {
+      if (prereqsStillValid() && prereqsRef.current.address === startAddress) {
         setIsApproved(true);
       }
     }, APPROVE_DELAY_MS);
-  }, [state]);
+  }, [state, wallet.address]);
 
   const buy = useCallback(() => {
     if (state !== "ready-to-buy") return;
+    // 同上：捕获发起购买时的账户地址，完成时要求当前账户与发起账户一致，
+    // 不能只用"完成时读到的当前地址"写入购买记录——否则账户 A 发起购买、
+    // 1.2 秒等待期间退出并登录账户 B，这笔购买会被错误记到 B 名下、
+    // 授予 B 本不该拥有的课程权限。
+    const startAddress = wallet.address;
     setIsBuying(true);
     buyTimer.current = setTimeout(() => {
       setIsBuying(false);
-      // 同上：前置条件失效则放弃本次购买，绝不能让一笔来自已失效钱包状态的
-      // 交易被写入购买记录。
-      if (prereqsStillValid()) {
-        recordPurchase(courseId, courseName, priceYD);
+      // 同上：前置条件失效或账户已切换则放弃本次购买，绝不能让一笔来自
+      // 已失效/已变更账户的交易被写入购买记录。address 判空是防御性的：
+      // prereqsStillValid() 要求 connected 为 true，但存在登录成功、嵌入式
+      // 钱包尚未完成创建的极短窗口（connected=true 但 address 仍为 null）。
+      const address = prereqsRef.current.address;
+      if (prereqsStillValid() && address && address === startAddress) {
+        recordPurchase(address, courseId, courseName, priceYD);
       }
     }, BUY_DELAY_MS);
-  }, [state, courseId, courseName, priceYD]);
+  }, [state, courseId, courseName, priceYD, wallet.address]);
 
   return { state, approve, buy };
 }

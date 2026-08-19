@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { GraduationCap, Menu, Wallet, X } from "lucide-react";
-import { useMockWallet } from "@/lib/wallet/useMockWallet";
+import { AlertTriangle, GraduationCap, Loader2, Menu, Wallet, X } from "lucide-react";
+import { useWallet } from "@/lib/wallet/useWallet";
 
 const NAV_LINKS = [
   { href: "/", label: "首页" },
@@ -17,13 +17,25 @@ function truncateAddress(address: string) {
 }
 
 export function TopNav() {
-  const { connected, address, network, connect, disconnect } = useMockWallet();
+  const {
+    connected,
+    loading,
+    switchingNetwork,
+    address,
+    network,
+    authError,
+    login,
+    logout,
+    switchToSepolia,
+  } = useWallet();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const networkLabel =
-    network === "sepolia" ? "Sepolia" : network === "mainnet" ? "Mainnet" : "错误网络";
-  const networkShortLabel =
-    network === "sepolia" ? "SEP" : network === "mainnet" ? "MAIN" : "!";
+  const statusDotClass =
+    connected && network === "sepolia"
+      ? "bg-secondary"
+      : connected && network === "wrong-network"
+        ? "bg-tertiary"
+        : "bg-error";
 
   return (
     <header className="sticky top-0 z-40 border-b border-outline-variant/40 bg-surface/80 backdrop-blur-md">
@@ -49,26 +61,73 @@ export function TopNav() {
         </nav>
 
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <span
-            className="shrink-0 rounded-full border border-outline-variant bg-surface-container px-2 py-1 font-mono text-label-md text-on-surface-variant sm:px-3"
-            title={networkLabel}
-          >
-            <span className="hidden sm:inline">{networkLabel}</span>
-            <span className="sm:hidden">{networkShortLabel}</span>
-          </span>
+          {connected && network === "wrong-network" && (
+            <button
+              type="button"
+              onClick={() => switchToSepolia()}
+              disabled={switchingNetwork}
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-tertiary bg-tertiary-container px-2 py-1 font-mono text-label-md text-on-tertiary-container transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:px-3"
+            >
+              {switchingNetwork && (
+                <Loader2 className="size-3 shrink-0 animate-spin" aria-hidden="true" />
+              )}
+              <span className="hidden sm:inline">
+                {switchingNetwork ? "切换中..." : "错误网络 · 切换到 Sepolia"}
+              </span>
+              <span className="sm:hidden">{switchingNetwork ? "切换中" : "切换网络"}</span>
+            </button>
+          )}
+          {connected && network === "sepolia" && (
+            <span
+              className="flex shrink-0 items-center rounded-full border border-outline-variant bg-surface-container px-2 py-1 font-mono text-label-md text-on-surface-variant sm:px-3"
+              title="Sepolia"
+            >
+              <span className="hidden sm:inline">Sepolia</span>
+              <span className="sm:hidden">SEP</span>
+            </span>
+          )}
+
+          {authError && (
+            <span
+              role="alert"
+              className="flex min-w-0 shrink items-center gap-1 text-error"
+            >
+              <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+              <span className="max-w-24 truncate text-label-md sm:max-w-48" title={authError}>
+                {authError}
+              </span>
+            </span>
+          )}
 
           <button
             type="button"
-            onClick={connected ? disconnect : connect}
-            aria-label={connected ? `断开钱包连接 ${truncateAddress(address)}` : "连接钱包"}
-            className="flex shrink-0 items-center gap-2 rounded-md border border-outline-variant bg-surface-container px-2 py-2 font-mono text-label-md text-on-surface transition-colors hover:bg-surface-container-high sm:px-3"
+            onClick={connected ? () => logout() : login}
+            disabled={loading}
+            aria-label={
+              connected
+                ? `退出登录 ${address ? truncateAddress(address) : ""}`
+                : "登录"
+            }
+            className="flex shrink-0 items-center gap-2 rounded-md border border-outline-variant bg-surface-container px-2 py-2 font-mono text-label-md text-on-surface transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-60 sm:px-3"
           >
-            <span
-              className={`size-2 shrink-0 rounded-full ${connected ? "bg-secondary" : "bg-error"}`}
-              aria-hidden="true"
-            />
+            {loading ? (
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+            ) : (
+              <span
+                className={`size-2 shrink-0 rounded-full ${statusDotClass}`}
+                aria-hidden="true"
+              />
+            )}
             <Wallet className="size-4 shrink-0" aria-hidden="true" />
-            <span className="hidden sm:inline">{connected ? truncateAddress(address) : "连接钱包"}</span>
+            <span className="hidden sm:inline">
+              {loading
+                ? "加载中..."
+                : connected
+                  ? address
+                    ? truncateAddress(address)
+                    : "已登录"
+                  : "登录"}
+            </span>
           </button>
 
           <button

@@ -2,7 +2,7 @@
 
 import { Pencil, Wallet } from "lucide-react";
 import { mockCurrentUser } from "@/lib/mock/fixtures";
-import { useMockWallet } from "@/lib/wallet/useMockWallet";
+import { useWallet } from "@/lib/wallet/useWallet";
 
 const ROLE_LABEL: Record<string, string> = {
   student: "学生",
@@ -20,11 +20,13 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ username, onEditUsername }: ProfileHeaderProps) {
-  // design.md 模块 1 要求 address/ydBalance 读自 useMockWallet()（而非固定 fixture），
-  // 保证在课程详情页领取过 Mock YD（wallet.setYdBalance）后，个人中心头部余额同步更新，
-  // 与 TopNav 等其它消费同一 Context 的地方保持一致。role 仍取 mockCurrentUser（
-  // useMockWallet 未暴露该字段）。
-  const { address, ydBalance } = useMockWallet();
+  // address/ydBalance 读自 useWallet()（而非固定 fixture），保证在课程详情页领取过
+  // Mock YD（wallet.setYdBalance）后，个人中心头部余额同步更新，与 TopNav 等其它
+  // 消费同一状态的地方保持一致。role 仍取 mockCurrentUser（useWallet 未暴露该字段）。
+  // address 类型是 string | null，但本组件只会在 app/profile/page.tsx 的登录门禁
+  // 判定 connected 为 true 之后才被渲染，届时 address 必然非空，用 "" 兜底纯粹是
+  // 满足类型检查，不代表真的会展示空地址。
+  const { address, ydBalance } = useWallet();
 
   return (
     <div className="flex flex-col items-start gap-4 rounded-lg border border-outline-variant bg-surface-container p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -40,7 +42,7 @@ export function ProfileHeader({ username, onEditUsername }: ProfileHeaderProps) 
             </span>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-label-md text-on-surface-variant">
-            <span className="font-mono">{truncateAddress(address)}</span>
+            <span className="font-mono">{truncateAddress(address ?? "")}</span>
             <span className="flex items-center gap-1 font-mono">
               <Wallet className="size-3.5" aria-hidden="true" />
               {ydBalance} YD

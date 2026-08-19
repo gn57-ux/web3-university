@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ShieldCheck, WifiOff } from "lucide-react";
-import { useMockWallet } from "@/lib/wallet/useMockWallet";
+import { Check, Loader2, ShieldCheck, WifiOff } from "lucide-react";
+import { useWallet } from "@/lib/wallet/useWallet";
 import { usePurchaseFlow } from "@/lib/purchase/usePurchaseFlow";
 import { TwoPhaseTxButton } from "./TwoPhaseTxButton";
 
@@ -21,7 +21,7 @@ export function PurchasePanel({
   priceYD,
   requiredBalanceYD,
 }: PurchasePanelProps) {
-  const wallet = useMockWallet();
+  const wallet = useWallet();
   const { state, approve, buy } = usePurchaseFlow(
     courseId,
     courseName,
@@ -59,10 +59,12 @@ export function PurchasePanel({
         ) : state === "wallet-disconnected" ? (
           <button
             type="button"
-            onClick={wallet.connect}
-            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary-container px-4 py-3 text-body-md font-medium text-on-primary-container transition-colors hover:opacity-90"
+            onClick={wallet.login}
+            disabled={wallet.loading}
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-primary-container px-4 py-3 text-body-md font-medium text-on-primary-container transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            连接钱包
+            {wallet.loading && <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />}
+            {wallet.loading ? "加载中..." : "登录"}
           </button>
         ) : state === "wrong-network" ? (
           <div className="flex flex-col gap-2">
@@ -72,10 +74,14 @@ export function PurchasePanel({
             </p>
             <button
               type="button"
-              onClick={() => wallet.setNetwork("sepolia")}
-              className="rounded-md bg-primary-container px-4 py-3 text-body-md font-medium text-on-primary-container transition-colors hover:opacity-90"
+              onClick={() => wallet.switchToSepolia()}
+              disabled={wallet.switchingNetwork}
+              className="flex items-center justify-center gap-2 rounded-md bg-primary-container px-4 py-3 text-body-md font-medium text-on-primary-container transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              切换到 Sepolia
+              {wallet.switchingNetwork && (
+                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+              )}
+              {wallet.switchingNetwork ? "切换中..." : "切换到 Sepolia"}
             </button>
           </div>
         ) : state === "insufficient-balance" ? (

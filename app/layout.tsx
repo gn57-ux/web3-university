@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Sora } from "next/font/google";
 import { TopNav } from "@/components/layout/TopNav";
 import { Footer } from "@/components/layout/Footer";
-import { WalletProvider } from "@/lib/wallet/useMockWallet";
+import { WalletProvider } from "@/lib/wallet/useWallet";
 import "./globals.css";
 
 const inter = Inter({

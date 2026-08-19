@@ -12,6 +12,7 @@ import { PurchaseRequiredGate } from "./PurchaseRequiredGate";
 import { mockComments } from "@/lib/mock/comments";
 import { getPurchases, subscribePurchases } from "@/lib/mock/purchaseStore";
 import type { Lesson } from "@/lib/mock/types";
+import { useWallet } from "@/lib/wallet/useWallet";
 
 interface LearningCenterProps {
   courseId: string;
@@ -24,10 +25,12 @@ const INITIAL_COMPLETED = 3;
 export function LearningCenter({ courseId, courseTitle, lessons }: LearningCenterProps) {
   // 购课门禁复用 feature 4 已验证的 useSyncExternalStore 模式（见 specs/LESSONS.md
   // 2026-08-12 Feature 4 条目）：getServerSnapshot 恒返回 false 保证不产生 hydration
-  // mismatch，无需额外的"恢复中"骨架态。
+  // mismatch，无需额外的"恢复中"骨架态。购买记录按登录账户隔离（feature 10 修复），
+  // 未登录（address 为 null）时 getPurchases 恒返回空数组，视为未购买。
+  const { address } = useWallet();
   const isPurchased = useSyncExternalStore(
     subscribePurchases,
-    () => getPurchases().some((record) => record.courseId === courseId),
+    () => getPurchases(address).some((record) => record.courseId === courseId),
     () => false
   );
 
