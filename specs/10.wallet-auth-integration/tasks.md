@@ -16,23 +16,23 @@
 
 ### 功能 1: Privy 基础设施
 
-- [ ] T-001: 安装 `@privy-io/react-auth`；新增 `NEXT_PUBLIC_PRIVY_APP_ID` 环境变量（仅通过环境变量读取，缺失时明确报错，不得用假值兜底）；真实 App ID 只写入本地 `.env.local`；新增 `.env.example` 模板，只写占位符（如 `NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id`），禁止写入真实值；确认 `.env.local` 已被 `.gitignore` 覆盖 ~30min
+- [x] T-001: 安装 `@privy-io/react-auth`；新增 `NEXT_PUBLIC_PRIVY_APP_ID` 环境变量（仅通过环境变量读取，缺失时明确报错，不得用假值兜底）；真实 App ID 只写入本地 `.env.local`；新增 `.env.example` 模板，只写占位符（如 `NEXT_PUBLIC_PRIVY_APP_ID=your-privy-app-id`），禁止写入真实值；确认 `.env.local` 已被 `.gitignore` 覆盖 ~30min
 
 ### 功能 2: 统一钱包适配层
 
-- [ ] T-002: 将 `lib/wallet/useMockWallet.tsx` 重写并重命名为 `lib/wallet/useWallet.tsx`：`connected`/`address`(nullable)/`network`/`authError` 消费 Privy `usePrivy()`/`useWallets()` 的真实状态，`login()`/`logout()`/`switchToSepolia()` 调用对应 Privy API（仅 Email 登录 + 自动创建的 Ethereum 嵌入式钱包，不支持 MetaMask/WalletConnect 等外部钱包连接）；`ydBalance`/`setYdBalance` 原样保留为独立本地 `useState` ~30min
-- [ ] T-003: `app/layout.tsx` 内的 `WalletProvider` 改为先挂载 `PrivyProvider`（`appId`/`loginMethods: ["email"]`/`embeddedWallets.createOnLogin`/`defaultChain: sepolia`），`ydBalance` 状态维护在其内层 ~15min
+- [x] T-002: 将 `lib/wallet/useMockWallet.tsx` 重写并重命名为 `lib/wallet/useWallet.tsx`：`connected`/`address`(nullable)/`network`/`authError` 消费 Privy `usePrivy()`/`useWallets()` 的真实状态，`login()`/`logout()`/`switchToSepolia()` 调用对应 Privy API（仅 Email 登录 + 自动创建的 Ethereum 嵌入式钱包，不支持 MetaMask/WalletConnect 等外部钱包连接）；`ydBalance`/`setYdBalance` 原样保留为独立本地 `useState` ~30min
+- [x] T-003: `app/layout.tsx` 内的 `WalletProvider` 改为先挂载 `PrivyProvider`（`appId`/`loginMethods: ["email"]`/`embeddedWallets.createOnLogin`/`defaultChain: sepolia`），`ydBalance` 状态维护在其内层 ~15min
 
 ### 功能 3: 全站消费点接入
 
-- [ ] T-004: `TopNav.tsx` 钱包徽标改接真实 `useWallet()`：未登录"登录"按钮、登录中 loading 态、已登录地址+绿点、`wrong-network` 时网络徽标可点击触发 `switchToSepolia()`、`authError` 非空时展示错误提示 ~30min
-- [ ] T-005: `Hero.tsx`（首页）"连接钱包"按钮改用 `useWallet().login()`，补充登录中 loading 态与 `address` 判空处理 ~15min
-- [ ] T-006: `PurchasePanel.tsx`/`usePurchaseFlow.ts`（课程详情）的 `wallet-disconnected`/`wrong-network` 前置状态接入真实 `useWallet()`：import 路径更新、"连接钱包"按钮改 `login`、"切换到 Sepolia"按钮改 `switchToSepolia()`；确认 `insufficient-balance` 起的后续 Mock 阶段不受影响 ~15min
-- [ ] T-007: 新建 `components/profile/LoginRequiredGate.tsx`（参考 `PurchaseRequiredGate.tsx` 视觉模式）；`app/profile/page.tsx` 按 `useWallet().connected` 分流渲染门禁或完整内容；`ProfileHeader.tsx` 接入真实 `address` ~30min
+- [x] T-004: `TopNav.tsx` 钱包徽标改接真实 `useWallet()`：未登录"登录"按钮、登录中 loading 态、已登录地址+绿点、`wrong-network` 时网络徽标可点击触发 `switchToSepolia()`、`authError` 非空时展示错误提示 ~30min
+- [x] T-005: `Hero.tsx`（首页）"连接钱包"按钮改用 `useWallet().login()`，补充登录中 loading 态与 `address` 判空处理 ~15min
+- [x] T-006: `PurchasePanel.tsx`/`usePurchaseFlow.ts`（课程详情）的 `wallet-disconnected`/`wrong-network` 前置状态接入真实 `useWallet()`：import 路径更新、"连接钱包"按钮改 `login`、"切换到 Sepolia"按钮改 `switchToSepolia()`；确认 `insufficient-balance` 起的后续 Mock 阶段不受影响 ~15min
+- [x] T-007: 新建 `components/profile/LoginRequiredGate.tsx`（参考 `PurchaseRequiredGate.tsx` 视觉模式）；`app/profile/page.tsx` 按 `useWallet().connected` 分流渲染门禁或完整内容；`ProfileHeader.tsx` 接入真实 `address` ~30min
 
 ### 集成与测试
 
-- [ ] T-008: 集成测试与响应式回归：完整登录→各页面状态核查→切网→购买流程不回归→退出登录全流程手动联调；三档断点（375/768/1280）走查首页/课程详情/个人中心；故意缺失 `NEXT_PUBLIC_PRIVY_APP_ID` 验证报错行为 ~30min
+- [x] T-008: 集成测试与响应式回归：完整登录→各页面状态核查→切网→购买流程不回归→退出登录全流程手动联调；三档断点（375/768/1280）走查首页/课程详情/个人中心；故意缺失 `NEXT_PUBLIC_PRIVY_APP_ID` 验证报错行为 ~30min
 
 ## 依赖关系
 

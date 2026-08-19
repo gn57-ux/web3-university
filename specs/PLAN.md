@@ -8,16 +8,16 @@
 
 | 序号 | feature | 说明 | 依赖 | 状态 |
 | --- | --- | --- | --- | --- |
-| 1 | project-foundation-design-system | Next.js 项目脚手架、Tailwind 设计令牌（Stitch "Ethereal Academy" 设计系统）、全局导航/页脚、Mock 数据类型与 Mock 钱包状态 | - | v1 已完成，v2（Privy 登录）待开发 |
-| 2 | homepage | 首页：Hero、关键指标、学习路径、精选课程 | 1 | v1 已完成，v2（接入真实钱包）待开发 |
+| 1 | project-foundation-design-system | Next.js 项目脚手架、Tailwind 设计令牌（Stitch "Ethereal Academy" 设计系统）、全局导航/页脚、Mock 数据类型与 Mock 钱包状态 | - | v1 已完成，v2（Privy 登录，由 10 统一实现）已完成 |
+| 2 | homepage | 首页：Hero、关键指标、学习路径、精选课程 | 1 | v1 已完成，v2（接入真实钱包，由 10 统一实现）已完成 |
 | 3 | course-marketplace | 课程广场：搜索/难度筛选、课程卡网格 | 1 | v1 已完成 |
-| 4 | course-detail-mock-purchase | 课程详情页 + 模拟购买状态机（授权/购买两阶段） | 1 | v1 已完成，v2（接入真实钱包）待开发 |
+| 4 | course-detail-mock-purchase | 课程详情页 + 模拟购买状态机（授权/购买两阶段） | 1 | v1 已完成，v2（接入真实钱包，由 10 统一实现）已完成 |
 | 5 | learning-center | 学习中心：视频区、章节进度、评论、完课与证书铸造中提示、购课门禁 | 1, 4（弱依赖，共享 purchaseStore） | v1 已完成 |
-| 6 | profile-center | 个人中心：资料、签名改名弹窗、四个 Tab（已购/进度/证书/交易记录） | 1, 4（弱依赖，共享 purchaseStore） | v1 已完成，v2（接入真实钱包 + 登录门禁）待开发 |
+| 6 | profile-center | 个人中心：资料、签名改名弹窗、四个 Tab（已购/进度/证书/交易记录） | 1, 4（弱依赖，共享 purchaseStore） | v1 已完成，v2（接入真实钱包 + 登录门禁，由 10 统一实现）已完成 |
 | 7 | teacher-workspace | 老师工作台：提交课程、我的课程状态管理 | 1 | v1 已完成 |
 | 8 | owner-admin-dashboard | Owner 后台：课程审核、老师白名单、完课确认铸造 | 1 | v1 已完成 |
 | 9 | responsive-visual-qa | 响应式与视觉 QA：断点走查、对照 Stitch 截图核验、问题修复 | 2,3,4,5,6,7,8 | v1 已完成 |
-| 10 | wallet-auth-integration | Mock 钱包 → 真实 Privy Email 登录 + Ethereum 嵌入式钱包（Sepolia），统一实现 1/2/4/6 已记录的钱包身份变更 | 1, 2, 4, 6 | 待开发 |
+| 10 | wallet-auth-integration | Mock 钱包 → 真实 Privy Email 登录 + Ethereum 嵌入式钱包（Sepolia），统一实现 1/2/4/6 已记录的钱包身份变更 | 1, 2, 4, 6 | v1 已完成 |
 
 **推荐执行顺序**：1 → 4 →（2, 3, 5, 6, 7, 8 可在 1、4 完成后并行，其中 5、6 对 4 为弱依赖） → 9 → 10（在现有 9 个 feature 全部完成后执行，10 内部任务顺序见其 tasks.md：T-001→T-002→T-003→(T-004~T-007 并行)→T-008）
 
