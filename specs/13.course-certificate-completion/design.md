@@ -128,7 +128,7 @@ function setCertificate(address newCertificate) external onlyOwner {
 }
 
 function markCompleted(address student, uint256 courseId) external nonReentrant onlyOracle {
-    if (courseId == 0 || courseId >= nextCourseId) revert CourseNotFound();
+    _requireCourseExists(courseId); // 复用 Web3University 已有的私有存在性校验，见下方修订记录
     if (!hasPurchased[courseId][student]) revert CourseNotPurchased();
     if (completed[courseId][student]) revert CourseAlreadyCompleted();
 
@@ -176,3 +176,4 @@ function markCompleted(address student, uint256 courseId) external nonReentrant 
 | Oracle 重复确认防护 | 不在 `DemoCompletionOracle` 重复维护状态，依赖 `Web3University.completed` | 单一数据源，避免两处状态不一致（见模块 2 说明） |
 | 证书元数据 URI | 复用课程 `metadataURI`，不新增证书专属字段 | 当前需求未要求证书元数据与课程元数据不同，避免预留用不到的抽象 |
 | 铸造后再次校验 | `CourseCertificate.hasCertificate` 独立于 `Web3University.completed` 再校验一次 | 纵深防御：两个独立合约各自的不变量不应该只依赖对方正确调用来保证 |
+| `markCompleted` 课程存在性判断 | 复用 `_requireCourseExists` 私有 helper | 初版伪代码写的 `courseId >= nextCourseId` 与 [[12.course-marketplace-contract]] 已修正过的同一处 off-by-one 错误同源（`createCourse` 用 `++nextCourseId` 前缀自增，合法范围是闭区间 `[1, nextCourseId]`，判断需用 `>`）。实现阶段没有重新复制一份错误判断，而是直接复用 `Web3University` 已有的 `_requireCourseExists` 私有函数——既修正了 bug，也避免同一条业务规则（"课程是否存在"）出现第二处独立实现 |

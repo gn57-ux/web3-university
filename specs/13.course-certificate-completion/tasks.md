@@ -16,23 +16,23 @@
 
 ### 功能 1：CourseCertificate
 
-- [ ] T-001: 实现 `src/CourseCertificate.sol`（OZ `ERC721`，`setMinter` onlyOwner，`mint` onlyMinter 含 `hasCertificate` 防重复，`tokenURI` 返回铸造时传入的 URI，自定义 error，`CertificateMinted`/`MinterUpdated` 事件） ~30min
-- [ ] T-002: `test/CourseCertificate.t.sol`：非 minter 铸造 revert、minter 铸造成功（owner/tokenURI/事件正确）、同一 `(courseId, student)` 重复铸造 revert、不同学生对同一课程各自可获得证书 ~30min
+- [x] T-001: 实现 `src/CourseCertificate.sol`（OZ `ERC721`，`setMinter` onlyOwner，`mint` onlyMinter 含 `hasCertificate` 防重复，`tokenURI` 返回铸造时传入的 URI，自定义 error，`CertificateMinted`/`MinterUpdated` 事件） ~30min
+- [x] T-002: `test/CourseCertificate.t.sol`：非 minter 铸造 revert、minter 铸造成功（owner/tokenURI/事件正确）、同一 `(courseId, student)` 重复铸造 revert、不同学生对同一课程各自可获得证书 ~30min
 
 ### 功能 2：DemoCompletionOracle
 
-- [ ] T-003: 实现 `src/DemoCompletionOracle.sol`（受信任提交者白名单、`confirmCompletion` 转发调用、自定义 error、`TrustedSubmitterUpdated` 事件） ~15min
-- [ ] T-004: `test/DemoCompletionOracle.t.sol`：非受信任地址调用 revert、Owner 增删提交者、受信任提交者调用成功转发（用 mock/实际 `Web3University` 均可） ~15min
+- [x] T-003: 实现 `src/DemoCompletionOracle.sol`（受信任提交者白名单、`confirmCompletion` 转发调用、自定义 error、`TrustedSubmitterUpdated` 事件） ~15min
+- [x] T-004: `test/DemoCompletionOracle.t.sol`：非受信任地址调用 revert、Owner 增删提交者、受信任提交者调用成功转发（用 mock/实际 `Web3University` 均可） ~15min
 
 ### 功能 3：Web3University 扩展（完课确认接线）
 
-- [ ] T-005: 扩展 `src/Web3University.sol`：`completed` mapping、`oracle`/`certificate` 地址、`setOracle`/`setCertificate` onlyOwner、`markCompleted` onlyOracle + nonReentrant（校验已购买、未重复完成，调用 `CourseCertificate.mint`），新增自定义 error 与 `CourseCompleted`/`OracleUpdated`/`CertificateContractUpdated` 事件；确认不改动 [[12.course-marketplace-contract]] 已交付的函数签名与行为 ~30min
-- [ ] T-006: `test/Web3University.t.sol`（第三部分，完课确认）：完整链路集成测试（受信任提交者 → `DemoCompletionOracle.confirmCompletion` → `Web3University.markCompleted` → `CourseCertificate.mint` 全链路断言 tokenId/事件/owner）、未购买课程标记完成 revert、重复标记完成 revert、非 oracle 地址直接调用 `markCompleted` revert ~30min
+- [x] T-005: 扩展 `src/Web3University.sol`：`completed` mapping、`oracle`/`certificate` 地址、`setOracle`/`setCertificate` onlyOwner、`markCompleted` onlyOracle + nonReentrant（校验已购买、未重复完成，调用 `CourseCertificate.mint`），新增自定义 error 与 `CourseCompleted`/`OracleUpdated`/`CertificateContractUpdated` 事件；确认不改动 [[12.course-marketplace-contract]] 已交付的函数签名与行为 ~30min
+- [x] T-006: `test/Web3University.t.sol`（第三部分，完课确认）：完整链路集成测试（受信任提交者 → `DemoCompletionOracle.confirmCompletion` → `Web3University.markCompleted` → `CourseCertificate.mint` 全链路断言 tokenId/事件/owner）、未购买课程标记完成 revert、重复标记完成 revert、非 oracle 地址直接调用 `markCompleted` revert ~30min
 
 ### 集成与测试
 
-- [ ] T-007: 扩展部署脚本（[[11.yd-token-faucet]] 的 `script/DeployTokenFaucet.s.sol` 或新增 `script/DeployAll.s.sol`）：按 design.md「部署与接线顺序」完整部署 5 个合约并完成 `setMinter`/`setCertificate`/`setOracle` 接线，本地 dry-run 验证全链路可跑通一次完整的"创建课程 → 审核 → 上架 → 购买 → 确认完成 → 铸造证书"流程 ~30min
-- [ ] T-008: 全量 `forge test`（含 [[11.yd-token-faucet]]、[[12.course-marketplace-contract]] 已有测试不回归）、`forge coverage` 确认本 feature 新增/修改代码行覆盖率 ≥ 90%、`forge fmt --check`、`forge build` 全绿 ~15min
+- [x] T-007: 扩展部署脚本（[[11.yd-token-faucet]] 的 `script/DeployTokenFaucet.s.sol` 或新增 `script/DeployAll.s.sol`）：按 design.md「部署与接线顺序」完整部署 5 个合约并完成 `setMinter`/`setCertificate`/`setOracle` 接线，本地 dry-run 验证全链路可跑通一次完整的"创建课程 → 审核 → 上架 → 购买 → 确认完成 → 铸造证书"流程 ~30min
+- [x] T-008: 全量 `forge test`（含 [[11.yd-token-faucet]]、[[12.course-marketplace-contract]] 已有测试不回归）、`forge coverage` 确认本 feature 新增/修改代码行覆盖率 ≥ 90%、`forge fmt --check`、`forge build` 全绿 ~15min
 
 ## 依赖关系
 
