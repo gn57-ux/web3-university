@@ -1,0 +1,10 @@
+# Foundry build artifacts — 不提交，可通过 forge build 复现
+out/
+cache/
+
+# lib/ 下的第三方依赖源码（OpenZeppelin、forge-std）不提交——与仓库根目录
+# node_modules/ 同样的处理方式：package.json/package-lock.json 记录依赖版本、
+# 由 npm install 复现；这里由 remappings.txt 记录路径、由 `forge install` 按
+# 锁定的 tag 复现（见 README「快速开始」）。全量提交会把 1000+ 个第三方文件、
+# 数十 MB 无关代码纳入本仓库版本历史与每次审查的 diff 范围，不划算。
+lib/
