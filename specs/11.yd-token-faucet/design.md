@@ -40,7 +40,7 @@
 ## Foundry 工程骨架
 
 - 路径：`contracts/web3-university/`（新建，独立于 `contracts/*.sol` 两个 Remix 教学示例文件；`forge init` 产生的 `src/`/`test/`/`script/`/`lib/` 全部限定在这个子目录内，不影响仓库根目录或 `contracts/` 顶层的现有文件结构）。
-- 依赖：`forge install OpenZeppelin/openzeppelin-contracts` （锁定到 Solidity `^0.8.24` 兼容的最新 release tag，具体版本号在 `contracts/web3-university/lib/` 安装后由 `forge` 生成的 `.gitmodules`/`remappings.txt` 记录，实现阶段确认后回填此处）。
+- 依赖：`forge install OpenZeppelin/openzeppelin-contracts@v5.7.0 --no-git` + `forge install foundry-rs/forge-std@v1.9.7 --no-git`（均锁定到不可变发布 tag，而非默认分支最新提交，保证任意时间点重新安装得到完全相同的依赖代码；锁定版本记录在 `contracts/web3-university/README.md`，实现阶段确认兼容 Solidity `0.8.24`）。
 - `foundry.toml` 关键配置：
   ```toml
   [profile.default]
@@ -57,8 +57,8 @@
   line_length = 100
   tab_width = 4
   ```
-- `remappings.txt`：`@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/`
-- `.gitignore`（子目录内，或复用根目录已有规则确认覆盖）：`out/`、`cache/` 不提交；`lib/` 下的依赖源码按 Foundry 惯例提交（`forge install` 默认行为，保证 `forge build` 无需联网即可复现）。
+- `remappings.txt`：`@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/`、`forge-std/=lib/forge-std/src/`
+- `.gitignore`（子目录内）：`out/`、`cache/`、`lib/` 均不提交——**与仓库根目录 `node_modules/` 相同的处理方式**：依赖版本锁定并记录在 `contracts/web3-university/README.md`（OpenZeppelin `v5.7.0`），由 `forge install` 按锁定版本复现，而不是把第三方依赖源码（OpenZeppelin + forge-std 及其各自的嵌套子依赖，安装后逾千个文件、数十 MB）整体提交进本仓库——既避免污染仓库体积和版本历史，也避免"审查 diff 范围"意外膨胀到已被上游审计过的第三方代码。**修订记录**：实现阶段最初按"Foundry 惯例全量提交 `lib/`"执行，Codex Review 判定为 P1（scoped diff 未包含依赖源码，全新检出无法构建），修复时改为本条"不提交 + 锁定版本 + README 记录安装命令"的方案，既解决了"构建可复现性"这一根本诉求，又避免了全量提交带来的仓库膨胀与审查范围失焦。
 
 ## 功能模块设计
 
@@ -101,8 +101,8 @@ contract YDFaucet {
   4. `emit TokensClaimed(msg.sender, CLAIM_AMOUNT)`。
 - `fund(uint256 amount)`：`onlyOwner`；`ydToken.safeTransferFrom(msg.sender, address(this), amount)`（Owner 需先对 Faucet 完成 `approve`）；`emit FaucetFunded(msg.sender, amount)`。
 - 自定义 error：`error AlreadyClaimed(); error InsufficientFaucetBalance(); error NotOwner();`
-- 权限：`owner` 通过构造函数一次性设定（不使用 OpenZeppelin `Ownable` 的可转移所有权——MVP 阶段不需要转移 Faucet 管理权，构造函数固定简单、攻击面更小；`onlyOwner` 修饰符自行实现两行等值比较，不引入额外依赖）。
-- 重入：`claim()`/`fund()` 均遵循 Checks-Effects-Interactions（先标记 `hasClaimed`/校验权限，再做外部 `safeTransfer`/`safeTransferFrom`），标准 ERC-20（`YDToken` 无 hook）无重入回调路径，故不额外叠加 `ReentrancyGuard`（避免为不存在的风险引入依赖，`.claude/rules/smart-contract.md` 要求"涉及外部调用...使用重入保护"针对的是有重入风险的场景，此处外部调用对象是本项目自己实现、已知无 hook 的 `YDToken`，风险已通过 CEI 顺序结构性消除）。
+- 权限：`owner` 通过构造函数一次性设定（不使用 OpenZeppelin `Ownable` 的可转移所有权——MVP 阶段不需要转移 Faucet 管理权，构造函数固定简单、攻击面更小；`onlyOwner` 修饰符自行实现两行等值比较，不引入额外依赖）。`owner`/`ydToken` 均为 `immutable`，构造函数必须校验二者都不是零地址（`revert ZeroAddress()`）——一旦以零地址部署，由于两者都不可转移/不可修复，会导致 `fund()` 永久不可用甚至整个合约功能性瘫痪（Codex Review 抓到的 P2，已修复并补充部署期 revert 测试）。
+- 重入：`claim()`/`fund()` 均遵循 Checks-Effects-Interactions（先标记 `hasClaimed`/校验权限，再做外部 `safeTransfer`/`safeTransferFrom`），并叠加 OpenZeppelin `ReentrancyGuard`（`nonReentrant`）——`.claude/rules/smart-contract.md` 审计清单明确要求"复用现有的重入锁/校验模式，而非引入新的不一致写法"，`contracts/PrivateBank.sol`/`EthRedPacket.sol` 均对外部调用函数使用 `nonReentrant`，本合约与之保持一致（初版设计曾评估"`YDToken` 无 hook、CEI 已结构性消除风险"为由省略，但这是对项目既有强制规范的无授权偏离，实现阶段已改为遵循规范加回 `nonReentrant`）。
 
 ### 模块 3：部署脚本
 
@@ -148,4 +148,4 @@ contract DeployTokenFaucet is Script {
 | 合约架构 | 分离合约（方案 B） | 见上文架构决策对比 |
 | `YDToken` 增发 | 不提供 `mint()` | PRD 只要求初始供应量一次性铸造，预留增发入口是当前需求不支撑的抽象 |
 | `YDFaucet` 权限模型 | 自实现 `onlyOwner`，不用 OZ `Ownable` | MVP 不需要可转移所有权，减少依赖面 |
-| 重入保护范围 | `YDFaucet` 不加 `ReentrancyGuard` | 外部调用对象（`YDToken`）无 hook，CEI 顺序已结构性消除重入风险；`Web3University`/`CourseCertificate` 涉及跨合约业务调用时会在各自 feature 中加 `ReentrancyGuard`（见 12、13 design.md） |
+| 重入保护范围 | `YDFaucet` 使用 OpenZeppelin `ReentrancyGuard` | 与 `.claude/rules/smart-contract.md` 审计清单「复用现有重入锁模式」保持一致；`Web3University`/`CourseCertificate` 涉及跨合约业务调用时同样加 `ReentrancyGuard`（见 12、13 design.md） |
