@@ -2,7 +2,7 @@
 
 Web3 在线课程 DApp：链上 YD Token 支付 + NFT 课程证书，链下承载视频/评论/进度。仓库包含两部分：
 
-- **前端**（仓库根目录）：Next.js + TypeScript + Tailwind CSS 实现的 Stitch 设计稿静态 UI 与 Mock 交互，**当前阶段不接入真实钱包/数据库/智能合约**。
+- **前端**（仓库根目录）：Next.js + TypeScript + Tailwind CSS 实现的 Stitch 设计稿静态 UI 与 Mock 交互，**当前阶段已接入 Privy Email 登录 + Ethereum 嵌入式钱包（真实身份/连接/网络状态），YD 余额、Faucet、课程支付、NFT 证书铸造等链上业务仍为 Mock，不接入数据库/智能合约**。
 - **智能合约教学示例**（`contracts/`）：与前端无关的独立 Remix 演示合约，见文末「智能合约教学示例」章节。
 
 ## 前端
@@ -12,7 +12,8 @@ Web3 在线课程 DApp：链上 YD Token 支付 + NFT 课程证书，链下承�
 - **框架**：Next.js 16（App Router）+ React 19 + TypeScript
 - **样式**：Tailwind CSS v4（CSS-first `@theme` 配置，无 `tailwind.config.ts`），暗色模式 "Ethereal Academy" 设计系统（Sora 标题 / Inter 正文 / JetBrains Mono 代码与数据）
 - **图标**：lucide-react
-- **数据层**：全部为前端 Mock（`lib/mock/`），无后端、无数据库；购买记录/证书等状态通过 `localStorage` 模拟持久化
+- **身份/钱包**：Privy React SDK（`@privy-io/react-auth`）Email 登录 + 自动创建的 Ethereum 嵌入式钱包（Sepolia），不支持 MetaMask/WalletConnect 等外部钱包
+- **数据层**：业务数据全部为前端 Mock（`lib/mock/`），无后端、无数据库；购买记录/证书等状态通过 `localStorage` 模拟持久化，并按登录账户地址隔离
 
 ### 快速开始
 
@@ -23,7 +24,12 @@ npm run build    # 生产构建
 npm run lint      # eslint .
 ```
 
-无需配置环境变量（当前阶段无真实钱包/数据库/合约接入）。
+需要配置 `NEXT_PUBLIC_PRIVY_APP_ID`（登录需要，其余阶段无数据库/合约接入）：
+
+```bash
+cp .env.example .env.local
+# 前往 https://dashboard.privy.io/ 创建应用，把真实 App ID 填入 .env.local（不要提交）
+```
 
 ### 目录结构
 
@@ -48,7 +54,7 @@ components/
 
 lib/
 ├── mock/                    Mock 数据与各 feature 的 fixtures（courseDetails/purchaseStore/teacherFixtures/adminFixtures 等）
-├── wallet/                   Mock 钱包 Context（useMockWallet）
+├── wallet/                   真实身份层：useWallet（Privy Email 登录 + 嵌入式钱包）
 └── purchase/                 购买/进度相关的共享 Hook（usePurchaseFlow、useProfilePurchases）
 ```
 
@@ -66,13 +72,15 @@ lib/
 
 ### 当前阶段范围（重要）
 
-- 仅实现 Stitch 设计稿对应的静态 UI 与 Mock 交互；不接入 Privy/wagmi/viem 的真实钱包调用、不接入 Supabase、不发起真实合约调用。
-- "连接钱包""购买课程""铸造 NFT"等操作均为本地状态机 + `setTimeout` 模拟的 Mock 异步流程。
+- 实现 Stitch 设计稿对应的静态 UI 与 Mock 交互；已接入 Privy Email 登录 + Ethereum 嵌入式钱包（真实身份/连接/网络状态），不接入外部钱包（MetaMask/WalletConnect）、不接入 Supabase、不发起真实合约调用（YD Token、课程购买、证书铸造等）。
+- "购买课程""铸造 NFT"等业务操作仍是本地状态机 + `setTimeout` 模拟的 Mock 异步流程；"登录/退出/切换网络"走真实 Privy SDK。
+- 未登录访问 `/profile` 会展示登录门禁，不渲染任何资料内容。
+- 购买记录（`lib/mock/purchaseStore.ts`）按登录账户地址隔离：同一浏览器切换 Privy 账户不会继承上一账户的已购课程/学习权限。
 - 各页面间共享的课程/证书/购买记录等数据集中在 `lib/mock/`，详细的架构决策与踩坑记录见 `specs/LESSONS.md` 与 `specs/memory/`。
 
 ### 部署
 
-纯静态/SSR 前端，`npm run build` 后可部署到任意支持 Next.js 的平台（Vercel 等），无需额外环境变量或后端服务。
+纯静态/SSR 前端，`npm run build` 后可部署到任意支持 Next.js 的平台（Vercel 等），部署环境需配置 `NEXT_PUBLIC_PRIVY_APP_ID`（真实 App ID，不要提交到仓库），无需额外后端服务。
 
 ## 智能合约教学示例
 

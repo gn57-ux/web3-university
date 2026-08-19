@@ -35,7 +35,7 @@ npm run lint      # eslint .
 ├── components/          # 按页面/功能分目录（home/marketplace/course-detail/learning-center/profile/teacher/admin/layout）
 ├── lib/
 │   ├── mock/             # 各 feature 的 Mock 数据与 fixtures
-│   ├── wallet/            # Mock 钱包 Context（useMockWallet）
+│   ├── wallet/            # 真实身份层：useWallet（Privy Email 登录 + Ethereum 嵌入式钱包）
 │   └── purchase/           # 购买/进度相关共享 Hook
 ├── contracts/            # Solidity 教学示例合约（只读，勿改）
 │   ├── PrivateBank.sol
