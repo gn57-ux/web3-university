@@ -16,18 +16,18 @@
 
 ### 功能 1：老师白名单 + 课程生命周期
 
-- [ ] T-001: 实现 `src/Web3University.sol` 骨架：`Course` struct、`isTeacher`/`courses`/`nextCourseId`、构造函数（接收 `YDToken` 地址与 Owner）、`setTeacher`/`createCourse`/`approveCourse`/`setCourseActive`，自定义 error 与对应事件 ~30min
-- [ ] T-002: `test/Web3University.t.sol`（第一部分）：老师白名单权限测试、课程创建/审核/上下架的状态机测试（含非法转换：未审核不能上架、非本人老师不能操作、课程不存在） ~30min
+- [x] T-001: 实现 `src/Web3University.sol` 骨架：`Course` struct、`isTeacher`/`courses`/`nextCourseId`、构造函数（接收 `YDToken` 地址与 Owner）、`setTeacher`/`createCourse`/`approveCourse`/`setCourseActive`，自定义 error 与对应事件 ~30min
+- [x] T-002: `test/Web3University.t.sol`（第一部分）：老师白名单权限测试、课程创建/审核/上下架的状态机测试（含非法转换：未审核不能上架、非本人老师不能操作、课程不存在） ~30min
 
 ### 功能 2：购买与购买记录
 
-- [ ] T-003: 在 `Web3University.sol` 追加 `buyCourse`（`nonReentrant`、`SafeERC20.safeTransferFrom`、价格读取自 `courses[courseId].price`）、`Purchase` struct、`hasPurchased`/`purchaseOf` mapping ~30min
-- [ ] T-004: `test/Web3University.t.sol`（第二部分）：购买成功路径（余额/事件/购买记录正确）、余额不足、授权不足、未上架/未审核课程购买 revert、重复购买 revert、**两门不同价格课程验证价格确实来自各自的链上配置而非硬编码** ~30min
+- [x] T-003: 在 `Web3University.sol` 追加 `buyCourse`（`nonReentrant`、`SafeERC20.safeTransferFrom`、价格读取自 `courses[courseId].price`）、`Purchase` struct、`hasPurchased`/`purchaseOf` mapping ~30min
+- [x] T-004: `test/Web3University.t.sol`（第二部分）：购买成功路径（余额/事件/购买记录正确）、余额不足、授权不足、未上架/未审核课程购买 revert、重复购买 revert、**两门不同价格课程验证价格确实来自各自的链上配置而非硬编码** ~30min
 
 ### 集成与测试
 
-- [ ] T-005: 扩展 [[11.yd-token-faucet]] 的 `script/DeployTokenFaucet.s.sol`（或新增 `script/DeployMarketplace.s.sol`）：部署 `Web3University` 并传入已部署的 `YDToken` 地址，本地 dry-run 验证 ~15min
-- [ ] T-006: `forge coverage` 确认 `Web3University.sol` 本次新增代码行覆盖率 ≥ 90%；`forge fmt --check`、`forge build`、全量 `forge test` 全绿（含 [[11.yd-token-faucet]] 已有测试不回归） ~15min
+- [x] T-005: 扩展 [[11.yd-token-faucet]] 的 `script/DeployTokenFaucet.s.sol`（或新增 `script/DeployMarketplace.s.sol`）：部署 `Web3University` 并传入已部署的 `YDToken` 地址，本地 dry-run 验证 ~15min
+- [x] T-006: `forge coverage` 确认 `Web3University.sol` 本次新增代码行覆盖率 ≥ 90%；`forge fmt --check`、`forge build`、全量 `forge test` 全绿（含 [[11.yd-token-faucet]] 已有测试不回归） ~15min
 
 ## 依赖关系
 

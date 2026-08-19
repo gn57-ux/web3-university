@@ -32,7 +32,7 @@ mapping(uint256 => Course) public courses;
 uint256 public nextCourseId; // 自增 ID，从 1 开始（0 保留作"不存在"哨兵值）
 ```
 
-- `courseId` 从 1 开始自增：`courses[0]` 恒不存在，函数内用 `courseId == 0 || courseId >= nextCourseId` 快速判断"课程不存在"，不需要额外的 `exists` 布尔字段（信息隐藏：不存在状态由 ID 范围本身表达，不重复存储）。
+- `courseId` 从 1 开始自增：`courses[0]` 恒不存在，函数内用 `courseId == 0 || courseId > nextCourseId` 快速判断"课程不存在"（`createCourse` 用 `++nextCourseId` 前缀自增后赋给新课程，已创建课程的合法 ID 范围是闭区间 `[1, nextCourseId]`，越界判断必须用 `>` 而非 `>=`——初版此处写成 `>=` 是一个 off-by-one 错误，会把刚创建的课程自己判定为不存在，实现阶段已修正），不需要额外的 `exists` 布尔字段（信息隐藏：不存在状态由 ID 范围本身表达，不重复存储）。
 
 **接口契约**：
 
@@ -87,7 +87,7 @@ mapping(uint256 => mapping(address => Purchase)) public purchaseOf; // courseId 
 ```solidity
 function buyCourse(uint256 courseId) external nonReentrant {
     Course storage course = courses[courseId];
-    if (courseId == 0 || courseId >= nextCourseId) revert CourseNotFound();
+    if (courseId == 0 || courseId > nextCourseId) revert CourseNotFound();
     if (!course.approved || !course.active) revert CourseNotAvailable();
     if (hasPurchased[courseId][msg.sender]) revert AlreadyPurchased();
 
