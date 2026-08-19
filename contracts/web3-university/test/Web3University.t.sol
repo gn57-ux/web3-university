@@ -4,6 +4,8 @@ pragma solidity 0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {YDToken} from "../src/YDToken.sol";
 import {Web3University} from "../src/Web3University.sol";
+import {CourseCertificate} from "../src/CourseCertificate.sol";
+import {DemoCompletionOracle} from "../src/DemoCompletionOracle.sol";
 
 /// @title Web3University 测试
 contract Web3UniversityTest is Test {
@@ -355,6 +357,174 @@ contract Web3UniversityTest is Test {
         assertEq(token.balanceOf(teacher), teacherBalanceBefore + cheapPrice);
         assertEq(token.balanceOf(otherTeacher), otherTeacherBalanceBefore + expensivePrice);
         assertEq(token.balanceOf(student), 0);
+    }
+
+    /* -------------------------------------------------------------------- */
+    /*                        完课确认 + 证书铸造（集成）                    */
+    /* -------------------------------------------------------------------- */
+
+    CourseCertificate internal certificate;
+    DemoCompletionOracle internal oracle;
+    address internal submitter = makeAddr("submitter");
+
+    /// @dev 部署并接线 CourseCertificate + DemoCompletionOracle，按 design.md「先部署、
+    ///      后接线」顺序：CourseCertificate（无 minter）-> Web3University（已在 setUp
+    ///      部署）-> DemoCompletionOracle（传入 Web3University 地址）-> Owner 依次调用
+    ///      setMinter/setCertificate/setOracle。
+    function _wireCompletionContracts() internal {
+        certificate = new CourseCertificate(owner);
+        oracle = new DemoCompletionOracle(owner, address(market));
+
+        vm.startPrank(owner);
+        certificate.setMinter(address(market));
+        market.setCertificate(address(certificate));
+        market.setOracle(address(oracle));
+        oracle.setTrustedSubmitter(submitter, true);
+        vm.stopPrank();
+    }
+
+    function test_SetOracleSucceedsWhenCalledByOwner() public {
+        address newOracle = makeAddr("newOracle");
+
+        vm.expectEmit(true, false, false, true, address(market));
+        emit Web3University.OracleUpdated(newOracle);
+
+        vm.prank(owner);
+        market.setOracle(newOracle);
+
+        assertEq(market.oracle(), newOracle);
+    }
+
+    function test_RevertWhen_SetOracleCalledByNonOwner() public {
+        vm.prank(teacher);
+        vm.expectRevert(Web3University.NotOwner.selector);
+        market.setOracle(teacher);
+    }
+
+    function test_SetCertificateSucceedsWhenCalledByOwner() public {
+        address newCertificate = makeAddr("newCertificate");
+
+        vm.expectEmit(true, false, false, true, address(market));
+        emit Web3University.CertificateContractUpdated(newCertificate);
+
+        vm.prank(owner);
+        market.setCertificate(newCertificate);
+
+        assertEq(market.certificate(), newCertificate);
+    }
+
+    function test_RevertWhen_SetCertificateCalledByNonOwner() public {
+        vm.prank(teacher);
+        vm.expectRevert(Web3University.NotOwner.selector);
+        market.setCertificate(teacher);
+    }
+
+    function test_RevertWhen_MarkCompletedCalledByNonOracle() public {
+        _wireCompletionContracts();
+        uint256 courseId = _createActiveCourse(teacher, COURSE_PRICE);
+        _fundStudent(student, COURSE_PRICE);
+
+        vm.startPrank(student);
+        token.approve(address(market), COURSE_PRICE);
+        market.buyCourse(courseId);
+        vm.stopPrank();
+
+        // 绕过 oracle，非 oracle 地址直接调用 markCompleted 必须 revert
+        vm.prank(student);
+        vm.expectRevert(Web3University.NotOracle.selector);
+        market.markCompleted(student, courseId);
+    }
+
+    /// @notice 完整链路集成测试：受信任提交者 -> DemoCompletionOracle.confirmCompletion
+    ///         -> Web3University.markCompleted -> CourseCertificate.mint，断言
+    ///         tokenId/owner/tokenURI/completed 状态以及全部三个事件均正确触发。
+    function test_FullCompletionLifecycleMintsCertificate() public {
+        _wireCompletionContracts();
+        uint256 courseId = _createActiveCourse(teacher, COURSE_PRICE);
+        _fundStudent(student, COURSE_PRICE);
+
+        vm.startPrank(student);
+        token.approve(address(market), COURSE_PRICE);
+        market.buyCourse(courseId);
+        vm.stopPrank();
+
+        vm.expectEmit(true, true, false, true, address(market));
+        emit Web3University.CourseCompleted(student, courseId, block.timestamp);
+        vm.expectEmit(true, true, true, true, address(certificate));
+        emit CourseCertificate.CertificateMinted(student, courseId, 1);
+
+        vm.prank(submitter);
+        oracle.confirmCompletion(student, courseId);
+
+        assertTrue(market.completed(courseId, student));
+        assertEq(certificate.ownerOf(1), student);
+        assertEq(certificate.tokenURI(1), METADATA_URI);
+        assertTrue(certificate.hasCertificate(courseId, student));
+    }
+
+    function test_RevertWhen_MarkCompletedStudentNeverPurchased() public {
+        _wireCompletionContracts();
+        uint256 courseId = _createActiveCourse(teacher, COURSE_PRICE);
+
+        // student 从未购买该课程
+        vm.prank(submitter);
+        vm.expectRevert(Web3University.CourseNotPurchased.selector);
+        oracle.confirmCompletion(student, courseId);
+    }
+
+    function test_RevertWhen_MarkCompletedTwice() public {
+        _wireCompletionContracts();
+        uint256 courseId = _createActiveCourse(teacher, COURSE_PRICE);
+        _fundStudent(student, COURSE_PRICE);
+
+        vm.startPrank(student);
+        token.approve(address(market), COURSE_PRICE);
+        market.buyCourse(courseId);
+        vm.stopPrank();
+
+        vm.prank(submitter);
+        oracle.confirmCompletion(student, courseId);
+
+        vm.prank(submitter);
+        vm.expectRevert(Web3University.CourseAlreadyCompleted.selector);
+        oracle.confirmCompletion(student, courseId);
+    }
+
+    function test_RevertWhen_MarkCompletedCourseNotFound() public {
+        _wireCompletionContracts();
+
+        vm.prank(owner);
+        market.setOracle(owner);
+
+        vm.prank(owner);
+        vm.expectRevert(Web3University.CourseNotFound.selector);
+        market.markCompleted(student, 999);
+    }
+
+    /// @notice 风险点：证书合约铸造 revert 时，`completed` 状态必须一并回滚，不能出现
+    ///         "标记完成但没有证书"的不一致态。通过让 minter（market）预先直接铸造一枚
+    ///         证书（绕过正常的 markCompleted 流程，模拟 CourseCertificate 自身状态已
+    ///         存在的边缘情况）触发 `certificate.mint` 内部的 CertificateAlreadyMinted，
+    ///         验证 markCompleted 整笔交易连同 `completed` 写入一起回滚。
+    function test_RevertWhen_CertificateMintFailsCompletedStateRollsBack() public {
+        _wireCompletionContracts();
+        uint256 courseId = _createActiveCourse(teacher, COURSE_PRICE);
+        _fundStudent(student, COURSE_PRICE);
+
+        vm.startPrank(student);
+        token.approve(address(market), COURSE_PRICE);
+        market.buyCourse(courseId);
+        vm.stopPrank();
+
+        // 模拟证书已存在（正常流程不可达，仅用于验证纵深防御回滚行为）
+        vm.prank(address(market));
+        certificate.mint(student, courseId, METADATA_URI);
+
+        vm.prank(submitter);
+        vm.expectRevert(CourseCertificate.CertificateAlreadyMinted.selector);
+        oracle.confirmCompletion(student, courseId);
+
+        assertFalse(market.completed(courseId, student));
     }
 
     /* -------------------------------------------------------------------- */

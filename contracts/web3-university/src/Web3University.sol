@@ -5,6 +5,14 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+/// @notice `CourseCertificate.mint` 的最小接口声明——本合约只需要调用这一个函数铸造证书，
+///         不引入对 `CourseCertificate` 全量 ABI 的依赖，保持接口窄、耦合低。
+interface ICourseCertificate {
+    function mint(address student, uint256 courseId, string calldata tokenURI_)
+        external
+        returns (uint256 tokenId);
+}
+
 /// @title Web3 University 课程市场
 /// @notice 老师白名单管理、课程创建/审核/上下架、学生用 YD Token 购买课程。
 /// @dev 权限模型自实现 `onlyOwner`（构造函数一次性设定，不可转移），与
@@ -12,8 +20,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 ///      固定 owner 更简单、攻击面更小。`buyCourse()` 遵循 Checks-Effects-Interactions，
 ///      并叠加 OpenZeppelin `ReentrancyGuard`，与团队既有合约风格
 ///      （`contracts/PrivateBank.sol`/`EthRedPacket.sol`/`YDFaucet.sol`）保持一致。
-///      本合约是 [[13.course-certificate-completion]] 的前置依赖：13 会在此基础上追加
-///      完课确认与证书铸造调用，因此当前范围内的函数职责保持清晰独立，不预留扩展接口。
+///      [[13.course-certificate-completion]] 在本合约基础上新增完课确认（`markCompleted`）
+///      与证书铸造调用（`oracle`/`certificate`/`completed`），[[12.course-marketplace-contract]]
+///      已交付的 `setTeacher`/`createCourse`/`approveCourse`/`setCourseActive`/`buyCourse`
+///      签名与行为不受影响。
 contract Web3University is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -56,6 +66,18 @@ contract Web3University is ReentrancyGuard {
     /// @notice courseId => student => 购买记录（用于链上查询展示购买价格/时间）
     mapping(uint256 => mapping(address => Purchase)) public purchaseOf;
 
+    /// @notice 唯一被授权调用 `markCompleted` 的地址（[[13.course-certificate-completion]]
+    ///         的 `DemoCompletionOracle` 实例），部署后由 Owner 接线设置
+    address public oracle;
+
+    /// @notice `CourseCertificate` 实例地址，部署后由 Owner 接线设置
+    address public certificate;
+
+    /// @notice courseId => student => 是否已完成课程；本合约内唯一权威的完成状态源，
+    ///         `CourseCertificate.hasCertificate` 是证书合约自身的独立纵深防御校验，
+    ///         两者目的不同，不构成重复实现同一知识
+    mapping(uint256 => mapping(address => bool)) public completed;
+
     /// @notice 老师白名单状态变更时触发
     event TeacherUpdated(address indexed teacher, bool enabled);
 
@@ -74,6 +96,15 @@ contract Web3University is ReentrancyGuard {
     event CoursePurchased(
         address indexed student, uint256 indexed courseId, uint256 price, uint256 purchasedAt
     );
+
+    /// @notice `oracle` 被 Owner 更新时触发
+    event OracleUpdated(address indexed newOracle);
+
+    /// @notice `certificate` 被 Owner 更新时触发
+    event CertificateContractUpdated(address indexed newCertificate);
+
+    /// @notice 学生完成课程（标记完成 + 铸造证书）成功时触发
+    event CourseCompleted(address indexed student, uint256 indexed courseId, uint256 completedAt);
 
     /// @notice 构造函数传入零地址时抛出——owner/ydToken 均为 immutable，
     ///         部署后无法修复，零地址会导致管理功能永久不可用（owner）
@@ -107,6 +138,15 @@ contract Web3University is ReentrancyGuard {
     /// @notice 同一学生重复购买同一课程时抛出
     error AlreadyPurchased();
 
+    /// @notice 非 `oracle` 地址调用 `markCompleted` 时抛出
+    error NotOracle();
+
+    /// @notice 标记完成时学生尚未购买该课程时抛出
+    error CourseNotPurchased();
+
+    /// @notice 同一 `(student, courseId)` 组合重复标记完成时抛出
+    error CourseAlreadyCompleted();
+
     /// @notice 仅 owner 可调用
     modifier onlyOwner() {
         if (msg.sender != owner) revert NotOwner();
@@ -116,6 +156,12 @@ contract Web3University is ReentrancyGuard {
     /// @notice 仅白名单老师可调用
     modifier onlyTeacher() {
         if (!isTeacher[msg.sender]) revert NotWhitelistedTeacher();
+        _;
+    }
+
+    /// @notice 仅授权预言机可调用
+    modifier onlyOracle() {
+        if (msg.sender != oracle) revert NotOracle();
         _;
     }
 
@@ -209,6 +255,45 @@ contract Web3University is ReentrancyGuard {
         ydToken.safeTransferFrom(msg.sender, teacher, price);
 
         emit CoursePurchased(msg.sender, courseId, price, purchasedAt);
+    }
+
+    /// @notice 接线授权预言机地址，预期在 `DemoCompletionOracle` 部署完成后由 Owner
+    ///         调用一次；不禁止重复调用以保留紧急更换预言机的能力，每次调用发出事件可追溯
+    /// @param newOracle 新的授权预言机地址
+    function setOracle(address newOracle) external onlyOwner {
+        oracle = newOracle;
+        emit OracleUpdated(newOracle);
+    }
+
+    /// @notice 接线证书合约地址，预期在 `CourseCertificate` 部署完成后由 Owner
+    ///         调用一次；不禁止重复调用以保留紧急更换证书合约的能力，每次调用发出事件可追溯
+    /// @param newCertificate 新的证书合约地址
+    function setCertificate(address newCertificate) external onlyOwner {
+        certificate = newCertificate;
+        emit CertificateContractUpdated(newCertificate);
+    }
+
+    /// @notice 授权预言机确认某学生完成某课程：标记完成状态并铸造证书
+    /// @dev Checks-Effects-Interactions：`completed[courseId][student] = true` 与
+    ///      `emit CourseCompleted` 都在外部调用 `certificate.mint(...)` 之前完成；
+    ///      `nonReentrant` 作为纵深防御——即使 `CourseCertificate.mint` 未来被扩展出
+    ///      意外的外部回调路径，本函数自身的状态已先行落定，重入调用会在第二次进入时
+    ///      立刻被 `CourseAlreadyCompleted` 拒绝。若 `certificate.mint` revert，整个
+    ///      交易回滚，`completed` 状态也一并回滚，不会出现"标记完成但没有证书"的不一致态。
+    /// @param student 学生地址
+    /// @param courseId 目标课程 ID
+    function markCompleted(address student, uint256 courseId) external nonReentrant onlyOracle {
+        _requireCourseExists(courseId);
+        if (!hasPurchased[courseId][student]) revert CourseNotPurchased();
+        if (completed[courseId][student]) revert CourseAlreadyCompleted();
+
+        // Effects：先标记完成状态、发出事件，再做外部调用（铸造证书）
+        completed[courseId][student] = true;
+
+        emit CourseCompleted(student, courseId, block.timestamp);
+
+        // Interactions
+        ICourseCertificate(certificate).mint(student, courseId, courses[courseId].metadataURI);
     }
 
     /// @dev 课程不存在时 revert `CourseNotFound`。`nextCourseId` 在 `createCourse` 中以
