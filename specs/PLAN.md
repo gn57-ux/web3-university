@@ -18,8 +18,24 @@
 | 8 | owner-admin-dashboard | Owner 后台：课程审核、老师白名单、完课确认铸造 | 1 | v1 已完成 |
 | 9 | responsive-visual-qa | 响应式与视觉 QA：断点走查、对照 Stitch 截图核验、问题修复 | 2,3,4,5,6,7,8 | v1 已完成 |
 | 10 | wallet-auth-integration | Mock 钱包 → 真实 Privy Email 登录 + Ethereum 嵌入式钱包（Sepolia），统一实现 1/2/4/6 已记录的钱包身份变更 | 1, 2, 4, 6 | v1 已完成 |
+| 11 | yd-token-faucet | Foundry 工程骨架 + `YDToken`（ERC-20）+ `YDFaucet`（限领水龙头） | - | 待开发 |
+| 12 | course-marketplace-contract | `Web3University`：老师白名单、课程审核上下架、`buyCourse`（价格读链上配置）、购买记录 | 11 | 待开发 |
+| 13 | course-certificate-completion | `CourseCertificate`（ERC-721）+ `DemoCompletionOracle` + `Web3University` 完课确认接线 | 12 | 待开发 |
 
-**推荐执行顺序**：1 → 4 →（2, 3, 5, 6, 7, 8 可在 1、4 完成后并行，其中 5、6 对 4 为弱依赖） → 9 → 10（在现有 9 个 feature 全部完成后执行，10 内部任务顺序见其 tasks.md：T-001→T-002→T-003→(T-004~T-007 并行)→T-008）
+**推荐执行顺序**：1 → 4 →（2, 3, 5, 6, 7, 8 可在 1、4 完成后并行，其中 5、6 对 4 为弱依赖） → 9 → 10（在现有 9 个 feature 全部完成后执行，10 内部任务顺序见其 tasks.md：T-001→T-002→T-003→(T-004~T-007 并行)→T-008） → 11 → 12 → 13（智能合约 MVP 三个 feature 严格串行，12 依赖 11 的 `YDToken`，13 依赖 12 的 `Web3University`）
+
+## 变更记录（2026-08-19）：新增 11/12/13 — 智能合约 MVP（Foundry）
+
+`/yd:prd` 新建模式，来源需求：`docs/PRD.md` 第 7 节「智能合约需求」+ 本次用户指令的技术选型约束（Foundry、Solidity 0.8.24、OpenZeppelin、分离合约架构、SafeERC20、自定义 error、权限控制、必要的重入保护、课程价格不写死）。
+
+- **切分依据**：PRD 第 7 节列出的 5 个合约按依赖关系分成 3 个 feature，而非 1 个大 feature（预估任务数会超过单 feature 4-8 上限）或 5 个各自为政的合约级 feature（`Web3University` 的完课/证书字段与 `CourseCertificate`/`DemoCompletionOracle` 强耦合，拆开会破坏"高内聚"）：
+  - `11.yd-token-faucet`：`YDToken` + `YDFaucet`，且承担 Foundry 工程骨架搭建（后两个 feature 复用），无外部依赖，可最先独立交付。
+  - `12.course-marketplace-contract`：`Web3University` 初版（老师白名单、课程生命周期、购买），依赖 11 的 `YDToken`。
+  - `13.course-certificate-completion`：`CourseCertificate` + `DemoCompletionOracle` + 扩展 `Web3University` 的完课确认入口，依赖 12。
+- **架构决策**：单体合约 vs 分离合约的比较记录在 `specs/11.yd-token-faucet/design.md`「架构决策」小节，结论为分离合约（5 个独立部署的合约，通过地址引用互相调用），对 11/12/13 三个 feature 均生效。
+- **新增子工程**：`contracts/web3-university/`（Foundry 工程，`src/`/`test/`/`script/`/`lib/`），与仓库现有 `contracts/PrivateBank.sol`、`contracts/EthRedPacket.sol`（Remix 教学示例，禁止修改）物理隔离，互不影响。
+- **强约束**（贯穿三个 feature）：不接入真实 Chainlink/Uniswap/主网/代理升级/退款/DAO/质押；部署脚本只做本地 dry-run，不含真实私钥/RPC/broadcast，不部署 Sepolia；不读取或提交 `.env.local`。
+- **执行方式**：本次 `/yd:prd` 生成 specs 后立即衔接 `/yd:ai` 自动执行全部任务，全程不因常规代码问题/Review finding 暂停，仅在需要真实私钥、RPC、区块浏览器密钥、破坏性操作、安全授权或 Review 达到轮次上限仍无法通过时暂停。
 
 ## 变更记录（2026-08-13）：1.wallet-auth — Mock 钱包 → 真实 Privy 登录
 
