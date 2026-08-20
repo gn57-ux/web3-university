@@ -19,10 +19,12 @@
 | 9 | responsive-visual-qa | 响应式与视觉 QA：断点走查、对照 Stitch 截图核验、问题修复 | 2,3,4,5,6,7,8 | v1 已完成 |
 | 10 | wallet-auth-integration | Mock 钱包 → 真实 Privy Email 登录 + Ethereum 嵌入式钱包（Sepolia），统一实现 1/2/4/6 已记录的钱包身份变更 | 1, 2, 4, 6 | v1 已完成 |
 | 11 | yd-token-faucet | Foundry 工程骨架 + `YDToken`（ERC-20）+ `YDFaucet`（限领水龙头） | - | v1 已完成 |
-| 12 | course-marketplace-contract | `Web3University`：老师白名单、课程审核上下架、`buyCourse`（价格读链上配置）、购买记录 | 11 | v1 已完成 |
+| 12 | course-marketplace-contract | `Web3University`：老师白名单、课程审核上下架、`buyCourse`（价格读链上配置）、购买记录 | 11 | v1 已完成（注 1） |
 | 13 | course-certificate-completion | `CourseCertificate`（ERC-721）+ `DemoCompletionOracle` + `Web3University` 完课确认接线 | 12 | v1 已完成 |
 
 **推荐执行顺序**：1 → 4 →（2, 3, 5, 6, 7, 8 可在 1、4 完成后并行，其中 5、6 对 4 为弱依赖） → 9 → 10（在现有 9 个 feature 全部完成后执行，10 内部任务顺序见其 tasks.md：T-001→T-002→T-003→(T-004~T-007 并行)→T-008） → 11 → 12 → 13（智能合约 MVP 三个 feature 严格串行，12 依赖 11 的 `YDToken`，13 依赖 12 的 `Web3University`）
+
+**注 1（Feature 12 门禁状态说明）**：实现与本地验证（`forge test`/`forge coverage`）均通过。N4 门禁第 1 轮 Codex 审查的实际结论语义为"未发现可操作问题"，但输出未附带门禁解析协议要求的精确 `VERDICT: ALLOW` 行，被门禁判定为含糊 BLOCK；因输出中不含 P0/P1 severity 标记，门禁策略不触发自动复审。最终由人工例外放行（`yd-workflow-state.mjs human-allow --override`，附独立复核证据：39/39 测试通过、`Web3University.sol` 100% 覆盖率、手动核对 `buyCourse` 价格来源与状态机逻辑），**不是标准的 `CODEX_REVIEW_ALLOW` 判定结果**。完整记录见 `~/.claude/yd-ai-state/reports/` 下对应任务的 human-allow 报告文件。
 
 ## 变更记录（2026-08-19）：新增 11/12/13 — 智能合约 MVP（Foundry）
 
