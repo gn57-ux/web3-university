@@ -184,6 +184,33 @@ contract Web3UniversityTest is Test {
         assertFalse(active);
     }
 
+    function test_RevertWhen_SetCourseActiveByRevokedTeacher() public {
+        uint256 courseId = _createApprovedCourse(teacher, COURSE_PRICE);
+
+        vm.prank(teacher);
+        market.setCourseActive(courseId, true);
+
+        vm.prank(owner);
+        market.setTeacher(teacher, false);
+
+        vm.prank(teacher);
+        vm.expectRevert(Web3University.NotWhitelistedTeacher.selector);
+        market.setCourseActive(courseId, true);
+    }
+
+    function test_RevokedTeacherCanStillDeactivateOwnCourse() public {
+        uint256 courseId = _createActiveCourse(teacher, COURSE_PRICE);
+
+        vm.prank(owner);
+        market.setTeacher(teacher, false);
+
+        vm.prank(teacher);
+        market.setCourseActive(courseId, false);
+
+        (,,,, bool active) = market.courses(courseId);
+        assertFalse(active);
+    }
+
     function test_RevertWhen_SetCourseActiveBeforeApproval() public {
         uint256 courseId = _createCourse(teacher, COURSE_PRICE);
 
@@ -290,6 +317,26 @@ contract Web3UniversityTest is Test {
     function test_RevertWhen_BuyCourseNotActive() public {
         uint256 courseId = _createApprovedCourse(teacher, COURSE_PRICE);
         _fundStudent(student, COURSE_PRICE);
+
+        vm.startPrank(student);
+        token.approve(address(market), COURSE_PRICE);
+
+        vm.expectRevert(Web3University.CourseNotAvailable.selector);
+        market.buyCourse(courseId);
+        vm.stopPrank();
+    }
+
+    function test_RevertWhen_BuyCourseTeacherRevokedWhileCourseStillActive() public {
+        // 课程已上架（active == true）之后再撤销老师白名单——课程状态字段本身不会
+        // 自动同步，buyCourse 必须独立校验 isTeacher，不能只信任 active 字段。
+        uint256 courseId = _createActiveCourse(teacher, COURSE_PRICE);
+        _fundStudent(student, COURSE_PRICE);
+
+        vm.prank(owner);
+        market.setTeacher(teacher, false);
+
+        (,,,, bool activeAfterRevoke) = market.courses(courseId);
+        assertTrue(activeAfterRevoke, "course.active should remain stale-true after revocation");
 
         vm.startPrank(student);
         token.approve(address(market), COURSE_PRICE);

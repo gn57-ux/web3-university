@@ -215,7 +215,9 @@ contract Web3University is ReentrancyGuard {
         emit CourseApproved(courseId);
     }
 
-    /// @notice 课程所属老师上架/下架自己的课程；上架要求课程已通过审核，下架无前置条件
+    /// @notice 课程所属老师上架/下架自己的课程；上架要求课程已通过审核且老师仍在白名单
+    ///         内，下架无前置条件（撤销白名单后老师仍可自行下架，但不能重新上架——
+    ///         Owner 撤销白名单必须能真正阻止该老师继续让课程对学生可购买）
     /// @param courseId 目标课程 ID
     /// @param active 目标状态：true 上架，false 下架
     function setCourseActive(uint256 courseId, bool active) external {
@@ -223,7 +225,10 @@ contract Web3University is ReentrancyGuard {
         Course storage course = courses[courseId];
 
         if (msg.sender != course.teacher) revert NotCourseTeacher();
-        if (active && !course.approved) revert CourseNotApproved();
+        if (active) {
+            if (!course.approved) revert CourseNotApproved();
+            if (!isTeacher[msg.sender]) revert NotWhitelistedTeacher();
+        }
 
         course.active = active;
 
@@ -231,13 +236,22 @@ contract Web3University is ReentrancyGuard {
     }
 
     /// @notice 学生购买已上架课程，价格从课程配置读取，款项直接结算给课程老师地址
+    /// @dev 即使课程仍标记为 `active`（例如老师被撤销白名单后没有主动下架、Owner 又没有
+    ///      强制下架的手段——`setCourseActive` 仅限课程所属老师调用），也必须在购买时
+    ///      重新校验 `isTeacher[course.teacher]`：白名单撤销必须真正阻止后续购买/收款，
+    ///      不能依赖"课程状态字段恰好被正确同步更新"这个前提（Codex Review 抓到的 P1，
+    ///      发现时机：修复了 setCourseActive 的重新上架漏洞之后，复核发现"已经 active
+    ///      的课程"这条路径仍未覆盖）。复用已有的 `CourseNotAvailable` error，不新增
+    ///      语义重复的错误类型
     /// @param courseId 目标课程 ID
     function buyCourse(uint256 courseId) external nonReentrant {
         _requireCourseExists(courseId);
         Course storage course = courses[courseId];
 
         // Checks
-        if (!course.approved || !course.active) revert CourseNotAvailable();
+        if (!course.approved || !course.active || !isTeacher[course.teacher]) {
+            revert CourseNotAvailable();
+        }
         if (hasPurchased[courseId][msg.sender]) revert AlreadyPurchased();
 
         // 价格来自链上课程配置，绝不在此处硬编码具体数值（F-005 强制要求）
