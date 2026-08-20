@@ -46,9 +46,10 @@ uint256 public nextCourseId; // 自增 ID，从 1 开始（0 保留作"不存在
   - Effects：`courses[courseId].approved = true`。
   - `emit CourseApproved(courseId)`。
 - `setCourseActive(uint256 courseId, bool active) external`：
-  - Checks：课程不存在 → revert `CourseNotFound()`；`msg.sender != courses[courseId].teacher` → revert `NotCourseTeacher()`；`active == true && !courses[courseId].approved` → revert `CourseNotApproved()`。
+  - Checks：课程不存在 → revert `CourseNotFound()`；`msg.sender != courses[courseId].teacher` → revert `NotCourseTeacher()`；仅当 `active == true` 时额外校验：`!courses[courseId].approved` → revert `CourseNotApproved()`，`!isTeacher[msg.sender]` → revert `NotWhitelistedTeacher()`。下架（`active == false`）不要求白名单状态，允许已撤销老师自行下架自己的课程。
   - Effects：`courses[courseId].active = active`。
   - `emit CourseStatusChanged(courseId, active)`。
+  - **修订记录（复核发现）**：初版实现只校验课程归属（`msg.sender == course.teacher`），未校验当前白名单状态（`isTeacher[msg.sender]`）——导致 Owner 用 `setTeacher(teacher, false)` 撤销某老师后，该老师仍能对自己已审核课程调用本函数重新上架，撤销操作形同虚设，违反 `requirements.md` 的用户故事"只有授权老师能上架课程"。已修复：仅在上架分支（`active == true`）追加 `isTeacher[msg.sender]` 校验；下架分支保持无前置条件（撤销老师仍可自行下架，语义上是安全方向）。
 
 **权限修饰符**：
 
@@ -88,7 +89,7 @@ mapping(uint256 => mapping(address => Purchase)) public purchaseOf; // courseId 
 function buyCourse(uint256 courseId) external nonReentrant {
     Course storage course = courses[courseId];
     if (courseId == 0 || courseId > nextCourseId) revert CourseNotFound();
-    if (!course.approved || !course.active) revert CourseNotAvailable();
+    if (!course.approved || !course.active || !isTeacher[course.teacher]) revert CourseNotAvailable();
     if (hasPurchased[courseId][msg.sender]) revert AlreadyPurchased();
 
     uint256 price = course.price; // 价格来自链上课程配置，绝不在此处硬编码具体数值（F-005 强制要求）
@@ -104,6 +105,7 @@ function buyCourse(uint256 courseId) external nonReentrant {
 - Checks-Effects-Interactions：先完成全部校验和状态写入（`hasPurchased`/`purchaseOf`），最后才做外部 `safeTransferFrom` 调用，`nonReentrant` 双重防护（OpenZeppelin `ReentrancyGuard`）。
 - 购买款项**直接结算给课程老师地址**，不在 `Web3University` 合约内滞留资金——从架构上消除"需要退款/提现池"的场景（用户明确要求不实现退款），也避免合约持有大额资金成为额外攻击面。
 - 价格来源单一：`course.price` 是唯一权威来源，`buyCourse` 只读取、不重新计算或覆盖，满足"课程价格读取链上课程配置，不写死"的强约束。
+- **修订记录（结构化复核发现，晚于上一条 `setCourseActive` 修订）**：`setCourseActive` 修复"撤销白名单后重新上架"漏洞后，复核又发现"课程在撤销前已经是 `active` 状态"这条路径仍未覆盖——`course.active` 字段不会因为 Owner 调用 `setTeacher(teacher, false)` 而自动同步，且 Owner 没有强制下架的手段（`setCourseActive` 仅限课程所属老师调用），导致被撤权老师的已上架课程可以无限期继续被购买、继续收款。修复：`buyCourse` 直接校验 `isTeacher[course.teacher]`，不依赖 `active` 字段是否已被正确同步，复用已有的 `CourseNotAvailable` error。**教训**：修复一个"权限撤销未生效"类问题时，要检查该权限被撤销前"已经处于生效状态的既有对象"是否也被覆盖到，不能只堵住"撤销后再次触发"这一条路径。
 
 ## 接口契约（合约级 ABI 摘要）
 

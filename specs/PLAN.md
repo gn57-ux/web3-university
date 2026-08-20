@@ -26,6 +26,12 @@
 
 **注 1（Feature 12 门禁状态说明）**：实现与本地验证（`forge test`/`forge coverage`）均通过。N4 门禁第 1 轮 Codex 审查的实际结论语义为"未发现可操作问题"，但输出未附带门禁解析协议要求的精确 `VERDICT: ALLOW` 行，被门禁判定为含糊 BLOCK；因输出中不含 P0/P1 severity 标记，门禁策略不触发自动复审。最终由人工例外放行（`yd-workflow-state.mjs human-allow --override`，附独立复核证据：39/39 测试通过、`Web3University.sol` 100% 覆盖率、手动核对 `buyCourse` 价格来源与状态机逻辑），**不是标准的 `CODEX_REVIEW_ALLOW` 判定结果**。完整记录见 `~/.claude/yd-ai-state/reports/` 下对应任务的 human-allow 报告文件。
 
+**后续复核（2026-08-20，工作流协议升级为结构化 JSON Review 后）**：对当前实现（含 [[13.course-certificate-completion]] 对 `Web3University.sol` 的完课接线扩展）用升级后的结构化门禁重新审查，**结果不是简单确认原实现无误，而是发现了两个真实的授权撤销绕过漏洞并已修复**：
+1. `setCourseActive` 只校验课程归属（`msg.sender == course.teacher`），未校验当前白名单状态（`isTeacher[msg.sender]`）——Owner 撤销某老师白名单后，该老师仍能对自己已审核课程重新上架，撤销操作形同虚设。修复：上架分支追加 `isTeacher[msg.sender]` 校验（下架分支保持无前置条件）。
+2. 修复第 1 项后，复核又发现"课程在撤销前已经是 `active` 状态"这条路径仍未覆盖——`course.active` 字段不会因撤销白名单自动同步，且 Owner 没有强制下架手段，被撤权老师的已上架课程可继续无限期收款。修复：`buyCourse` 直接校验 `isTeacher[course.teacher]`，不依赖 `active` 字段是否已同步。
+
+两处修复后，`forge test` 65/65 通过（新增 3 个回归测试），`Web3University.sol`/`CourseCertificate.sol`/`DemoCompletionOracle.sol`/`YDFaucet.sol`/`YDToken.sol` 五个合约源文件均 100% 行覆盖率，最终获得**标准结构化 ALLOW**（`Codex-Called: true`，非 human-allow、非 --override，报告文件 `c2459a5ff91a49bbc386-c2bd979ff28a.md`）。原始 human-allow 记录（上一段）保持不变，作为历史事实保留，不代表已修复的这两个漏洞在当时就存在——它们是本次结构化复核新发现的，不是原始审查遗漏后又被找回的同一个问题。
+
 ## 变更记录（2026-08-19）：新增 11/12/13 — 智能合约 MVP（Foundry）
 
 `/yd:prd` 新建模式，来源需求：`docs/PRD.md` 第 7 节「智能合约需求」+ 本次用户指令的技术选型约束（Foundry、Solidity 0.8.24、OpenZeppelin、分离合约架构、SafeERC20、自定义 error、权限控制、必要的重入保护、课程价格不写死）。
