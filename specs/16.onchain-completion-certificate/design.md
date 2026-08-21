@@ -5,6 +5,7 @@
 | 日期 | 版本 | 说明 |
 | --- | --- | --- |
 | 2026-08-20 | v1 | 初始设计 |
+| 2026-08-21 | v2 | 实现完成，记录真实端到端联调中发现并修复的两处问题（见下方「实现修订记录」） |
 
 ## 项目架构
 
@@ -83,6 +84,12 @@ const [data, uri, owner] = await Promise.all([
 
 - `getContractEvents` 查询范围是"本地 Anvil 从创世到现在"的全部区块——本地演示链区块数极少（部署+种子+几笔交易），这里的"全量扫描"和 PRD 11.3 警告的"生产环境无限范围事件扫描"不是同一量级问题，MVP 阶段可接受；如果未来接 Sepolia，这里需要改成按已知部署区块高度做 `fromBlock` 下限，不在本 feature 范围内实现。
 - 个人中心"NFT 证书"Tab 展示：tokenId、课程名称（本地按 courseId 映射回 slug 再查 `lib/mock/fixtures.ts` 的课程标题——课程标题本来就是链下数据，不需要从链上 `metadataURI` 反查）、完成时间（`certificateData.completedAt`）、`tokenURI` 原始字符串、拥有者地址（`ownerOf`，用于验证"这枚 NFT 确实在我账户名下"这个真实性展示）。
+
+## 实现修订记录（真实端到端联调发现，两处问题均已修复并用真实链上交易验证）
+
+- **零费用估费问题**：`app/api/complete-course/route.ts` 首次实现直接调用 `walletClient.writeContract(simulatedRequest)`，真实调用 `DemoCompletionOracle.confirmCompletion` 时报错 `The provided tip (maxPriorityFeePerGas) cannot be higher than the fee cap (maxFeePerGas)`。根因与 [[14.contract-client-foundation]] 的 `withZeroFeeDefaults` 完全一致——Anvil 即使以零 gas 相关参数启动，`eth_maxPriorityFeePerGas` 仍建议 1 gwei，但区块 `baseFee` 是 0，viem 的自动估费在这个组合下算出的 `maxFeePerGas` 可能低于 `maxPriorityFeePerGas`。区别在于触发场景：Feature 14 的诱因是 Privy 钱包零 ETH 余额，这里受信任提交者账户（Anvil 账户 #2）本身有 10000 ETH，完全不缺 gas 费，但触发的是同一个 viem 估费 bug，不是余额问题。修复：`route.ts` 里复刻 `withZeroFeeDefaults` 的判断逻辑（`TARGET_CHAIN.id === LOCAL_ANVIL_CHAIN_ID` 时在 `writeContract` 显式传入 `maxFeePerGas: 0n, maxPriorityFeePerGas: 0n`），换成 Sepolia 后自动退回正常估费。
+- **自定义 error 解码不完整问题**：`confirmCompletion` 内部转发调用 `Web3University.markCompleted`（见 `DemoCompletionOracle.sol` 注释），真正的业务 revert（`CourseNotPurchased`/`CourseAlreadyCompleted`/`CourseNotFound`）来自被转发到的那个合约。首次实现 `simulateContract` 只传入 `DemoCompletionOracleAbi`，真实触发"重复确认完成"场景时，`toContractErrorMessage` 拿不到匹配的自定义 error 选择器解码出 `errorName`，退化成通用兜底文案"合约拒绝了本次操作"，而不是 `CourseAlreadyCompleted` 对应的"该课程已确认完成，无需重复确认"——用真实重复调用验证过这个差异。修复：`simulateContract` 改用 `[...DemoCompletionOracleAbi, ...Web3UniversityAbi]` 合并 ABI，让 viem 能匹配到完整的自定义 error 集合。这提醒了一个可能适用于未来跨合约转发调用场景的通用原则：`simulateContract`/错误解码用的 ABI 必须覆盖调用链上所有可能 revert 的合约，不能只用被直接调用的那一个合约的 ABI。
+- 两处问题均通过真实 Anvil 本地链交易验证（而非仅静态检查）：完整走通 Faucet 领取 → approve → buyCourse → `/api/complete-course` 确认完成 → `Web3University.completed`/`CourseCertificate.hasCertificate` 均为 `true` → `ownerOf` 返回学生地址 → 重复确认返回正确的中文错误提示；`courseId` 白名单校验、地址格式校验也逐一用真实请求验证过拒绝路径。
 
 ## 安全考虑
 
