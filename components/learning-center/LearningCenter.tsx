@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Award, Loader2 } from "lucide-react";
 import { Breadcrumb } from "./Breadcrumb";
 import { CodeSnippet } from "./CodeSnippet";
 import { CommentSection } from "./CommentSection";
@@ -14,6 +14,7 @@ import { mockComments } from "@/lib/mock/comments";
 import type { Lesson } from "@/lib/mock/types";
 import { useWallet } from "@/lib/wallet/useWallet";
 import { useContractClients } from "@/lib/contracts/useContractClients";
+import { useCompletionConfirmation } from "@/lib/purchase/useCompletionConfirmation";
 import { CONTRACT_ADDRESSES } from "@/lib/contracts/addresses";
 import { TARGET_CHAIN } from "@/lib/contracts/chain";
 import { Web3UniversityAbi } from "@/lib/contracts/abis/Web3University";
@@ -115,6 +116,80 @@ export function LearningCenter({ courseId, courseTitle, lessons }: LearningCente
   // 提交新状态）时，无论 purchaseCheck.status 之前是什么，一律按 checking
   // 处理，避免用旧查询键的 "purchased" 结果渲染出新查询键不该看到的课程内容。
   const effectiveStatus = purchaseCheck.key === queryKey ? purchaseCheck.status : "checking";
+
+  // 完课确认按钮的可见性必须严格依赖链上 `Web3University.completed` 状态，不能
+  // 只看下面的本地 `isComplete`（"章节是否看完"是纯前端演示状态，购课门禁+
+  // 完成状态都必须走链上校验链路，不能被前端状态绕过——specs/16.
+  // onchain-completion-certificate/tasks.md「风险点」）。只有确认已购买
+  // （effectiveStatus === "purchased"）才发起这次读取，未购买/未登录时没有
+  // 意义。与 purchaseCheck 同一套带查询键的竞态防护模式。
+  const [completionCheck, setCompletionCheck] = useState<{
+    key: string;
+    status: "checking" | "completed" | "not-completed" | "error";
+    error?: string;
+  }>({ key: "", status: "checking" });
+  const [completionRefreshToken, setCompletionRefreshToken] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    const key = `${address ?? "anon"}::${courseId}`;
+
+    if (!address || effectiveStatus !== "purchased") {
+      queueMicrotask(() => {
+        if (!cancelled) setCompletionCheck({ key, status: "not-completed" });
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    let onchainCourseId: bigint;
+    try {
+      onchainCourseId = getOnchainCourseId(courseId);
+    } catch {
+      queueMicrotask(() => {
+        if (!cancelled) setCompletionCheck({ key, status: "not-completed" });
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    queueMicrotask(() => {
+      if (!cancelled) setCompletionCheck({ key, status: "checking" });
+    });
+    publicClient
+      .readContract({
+        address: CONTRACT_ADDRESSES[TARGET_CHAIN.id].Web3University,
+        abi: Web3UniversityAbi,
+        functionName: "completed",
+        args: [onchainCourseId, address as `0x${string}`],
+      })
+      .then((isCompleted) => {
+        if (!cancelled) {
+          setCompletionCheck({ key, status: isCompleted ? "completed" : "not-completed" });
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setCompletionCheck({ key, status: "error", error: toContractErrorMessage(e) });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address, courseId, publicClient, effectiveStatus, completionRefreshToken]);
+
+  const effectiveCompletionStatus =
+    completionCheck.key === queryKey ? completionCheck.status : "checking";
+
+  const completion = useCompletionConfirmation(courseId);
+
+  async function handleConfirmCompletion() {
+    const success = await completion.confirm();
+    if (success) setCompletionRefreshToken((token) => token + 1);
+  }
 
   const sortedLessons = useMemo(() => [...lessons].sort((a, b) => a.order - b.order), [lessons]);
   const [completedCount, setCompletedCount] = useState(() =>
@@ -226,6 +301,55 @@ export function LearningCenter({ courseId, courseTitle, lessons }: LearningCente
             >
               标记本章完成（演示）
             </button>
+          )}
+
+          {/* 完课确认入口只在本地"章节全部看完"（isComplete）之后才出现——但按钮
+              本身是否可点击、点击后走什么分支，完全依赖链上 completionCheck
+              状态，不是 isComplete 直接决定要不要发起交易（design.md 模块 2 +
+              tasks.md「风险点」）。 */}
+          {isComplete && effectiveCompletionStatus === "completed" && (
+            <div className="mt-stack-sm flex items-center gap-2 rounded-md bg-secondary-container px-3 py-2 text-body-md font-medium text-on-secondary-container">
+              <Award className="size-4 shrink-0" aria-hidden="true" />
+              已获得证书
+            </div>
+          )}
+          {isComplete && effectiveCompletionStatus === "checking" && (
+            <div className="mt-stack-sm flex items-center justify-center gap-2 rounded-md bg-surface-container-high px-3 py-2 text-body-md text-on-surface-variant">
+              <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+              读取链上完成状态...
+            </div>
+          )}
+          {isComplete && effectiveCompletionStatus === "error" && (
+            <div className="mt-stack-sm flex flex-col items-center gap-2 rounded-md border border-outline-variant p-3 text-center">
+              <p className="text-label-md text-error">
+                读取链上完成状态失败：{completionCheck.error}
+              </p>
+              <button
+                type="button"
+                onClick={() => setCompletionRefreshToken((token) => token + 1)}
+                className="rounded-md bg-primary-container px-3 py-1.5 text-label-md font-medium text-on-primary-container transition-colors hover:opacity-90"
+              >
+                重试
+              </button>
+            </div>
+          )}
+          {isComplete && effectiveCompletionStatus === "not-completed" && (
+            <div className="mt-stack-sm flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleConfirmCompletion}
+                disabled={completion.disabled || completion.status === "signing"}
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-primary-container px-4 py-2 text-body-md font-medium text-on-primary-container transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {completion.status === "signing" && (
+                  <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
+                )}
+                {completion.status === "signing" ? "确认中..." : "确认完成并铸造证书"}
+              </button>
+              {completion.error && (
+                <p className="text-label-md text-error">{completion.error}</p>
+              )}
+            </div>
           )}
         </div>
 
