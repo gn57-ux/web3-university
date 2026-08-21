@@ -21,8 +21,19 @@
 | 11 | yd-token-faucet | Foundry 工程骨架 + `YDToken`（ERC-20）+ `YDFaucet`（限领水龙头） | - | v1 已完成 |
 | 12 | course-marketplace-contract | `Web3University`：老师白名单、课程审核上下架、`buyCourse`（价格读链上配置）、购买记录 | 11 | v1 已完成（注 1） |
 | 13 | course-certificate-completion | `CourseCertificate`（ERC-721）+ `DemoCompletionOracle` + `Web3University` 完课确认接线 | 12 | v1 已完成 |
+| 14 | contract-client-foundation | Anvil 本地链、ABI/地址同步、Viem 客户端、Privy 钱包客户端签名、统一错误/交易状态 | 10, 11, 12, 13 | 待开发 |
+| 15 | onchain-token-course-purchase | 真实 YD 余额/Faucet/approve/buyCourse/链上购买记录，替换 Mock | 14 | 待开发 |
+| 16 | onchain-completion-certificate | 完课确认（服务端受信任提交者）+ NFT 证书真实展示，替换 Mock | 15 | 待开发 |
 
-**推荐执行顺序**：1 → 4 →（2, 3, 5, 6, 7, 8 可在 1、4 完成后并行，其中 5、6 对 4 为弱依赖） → 9 → 10（在现有 9 个 feature 全部完成后执行，10 内部任务顺序见其 tasks.md：T-001→T-002→T-003→(T-004~T-007 并行)→T-008） → 11 → 12 → 13（智能合约 MVP 三个 feature 严格串行，12 依赖 11 的 `YDToken`，13 依赖 12 的 `Web3University`）
+**推荐执行顺序**：1 → 4 →（2, 3, 5, 6, 7, 8 可在 1、4 完成后并行，其中 5、6 对 4 为弱依赖） → 9 → 10（在现有 9 个 feature 全部完成后执行，10 内部任务顺序见其 tasks.md：T-001→T-002→T-003→(T-004~T-007 并行)→T-008） → 11 → 12 → 13（智能合约 MVP 三个 feature 严格串行，12 依赖 11 的 `YDToken`，13 依赖 12 的 `Web3University`） → 14 → 15 → 16（前端接入真实合约三个 feature 严格串行，均在本地 Anvil 链上进行，不部署 Sepolia）
+
+## 变更记录（2026-08-20）：新增 14/15/16 — 前端接入真实合约（本地 Anvil）
+
+`/yd:prd` 新建模式，衔接 Feature 11-13 已完成的合约 MVP，把前端从 Mock 数据源切换到真实链上读写。范围严格限定在本地 Anvil 链，不部署 Sepolia、不接入 Supabase/Chainlink/Uniswap。
+
+- **切分依据**：14 是纯基础设施（链定义、ABI/地址同步、Viem 客户端、错误/状态模型），无业务替换；15 替换 YD 余额/Faucet/购买；16 替换完课确认/证书展示。三者有严格的技术依赖顺序（14 是 15/16 的地基，15 的购买记录是 16 判断"能否触发完课确认"的前提），不适合并行。
+- **关键架构决策**：见 `specs/14.contract-client-foundation/design.md`（ABI/地址走同步脚本产物而非构建时依赖 Foundry）、`specs/15.onchain-token-course-purchase/design.md`（链上状态用 refetch-after-write 而非订阅/轮询）、`specs/16.onchain-completion-certificate/design.md`（受信任提交者私钥放在 Next.js 服务端 Route Handler，使用 Anvil 默认测试账户、非真实私钥）。
+- **强约束**：不部署 Sepolia、不读取/提交任何真实私钥或 RPC URL；受信任提交者用的是 Anvil 公开已知的默认测试账户私钥（零真实价值），仍按服务端环境变量的既有安全约定处理。
 
 **注 1（Feature 12 门禁状态说明）**：实现与本地验证（`forge test`/`forge coverage`）均通过。N4 门禁第 1 轮 Codex 审查的实际结论语义为"未发现可操作问题"，但输出未附带门禁解析协议要求的精确 `VERDICT: ALLOW` 行，被门禁判定为含糊 BLOCK；因输出中不含 P0/P1 severity 标记，门禁策略不触发自动复审。最终由人工例外放行（`yd-workflow-state.mjs human-allow --override`，附独立复核证据：39/39 测试通过、`Web3University.sol` 100% 覆盖率、手动核对 `buyCourse` 价格来源与状态机逻辑），**不是标准的 `CODEX_REVIEW_ALLOW` 判定结果**。完整记录见 `~/.claude/yd-ai-state/reports/` 下对应任务的 human-allow 报告文件。
 
