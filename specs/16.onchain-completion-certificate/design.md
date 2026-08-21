@@ -91,6 +91,11 @@ const [data, uri, owner] = await Promise.all([
 - **自定义 error 解码不完整问题**：`confirmCompletion` 内部转发调用 `Web3University.markCompleted`（见 `DemoCompletionOracle.sol` 注释），真正的业务 revert（`CourseNotPurchased`/`CourseAlreadyCompleted`/`CourseNotFound`）来自被转发到的那个合约。首次实现 `simulateContract` 只传入 `DemoCompletionOracleAbi`，真实触发"重复确认完成"场景时，`toContractErrorMessage` 拿不到匹配的自定义 error 选择器解码出 `errorName`，退化成通用兜底文案"合约拒绝了本次操作"，而不是 `CourseAlreadyCompleted` 对应的"该课程已确认完成，无需重复确认"——用真实重复调用验证过这个差异。修复：`simulateContract` 改用 `[...DemoCompletionOracleAbi, ...Web3UniversityAbi]` 合并 ABI，让 viem 能匹配到完整的自定义 error 集合。这提醒了一个可能适用于未来跨合约转发调用场景的通用原则：`simulateContract`/错误解码用的 ABI 必须覆盖调用链上所有可能 revert 的合约，不能只用被直接调用的那一个合约的 ABI。
 - 两处问题均通过真实 Anvil 本地链交易验证（而非仅静态检查）：完整走通 Faucet 领取 → approve → buyCourse → `/api/complete-course` 确认完成 → `Web3University.completed`/`CourseCertificate.hasCertificate` 均为 `true` → `ownerOf` 返回学生地址 → 重复确认返回正确的中文错误提示；`courseId` 白名单校验、地址格式校验也逐一用真实请求验证过拒绝路径。
 
+## 实现修订记录（结构化复核发现，第二轮，两处问题一并记录）
+
+- **证书按铸造记录而非当前拥有者展示（P2）**：`useOnchainCertificates.ts` 用 `hasCertificate[courseId][student]` 判断"这个学生是否有这门课的证书"，但这个 mapping 记录的是"当初铸造给谁"——`CourseCertificate` 继承自 OpenZeppelin ERC721，`transferFrom`/`safeTransferFrom` 是标准可用的，证书转让后原学生的 `hasCertificate` 仍然是 `true`，个人中心会继续展示一枚他已经不再拥有的证书。修复：拿到 `ownerOf(tokenId)` 后额外核对 `owner === studentAddress`，不匹配就过滤掉。已知限制（不在本次修复范围）：接收方（转让后的新拥有者）目前无法在自己的个人中心发现这枚证书——本 Hook 只按"已知种子课程 + 固定 student 参数"查询 `CertificateMinted` 事件，不会按 `Transfer` 事件的 `to` 地址反查；本应用目前也没有暴露任何证书转让入口，这只是继承自 ERC721 标准本身的可转让性，真正的"接收方发现"需要更大范围的事件索引改造，留给未来里程碑。
+- **完课确认按钮可能在真实完成状态读出前短暂出现（P2）**：`LearningCenter.tsx` 的 `completionCheck` effect 在"未购买/购买状态还在 checking"分支里，把 `{status: "not-completed"}` 写在真实查询键（`key`）下——`effectiveStatus` 从 `"checking"` 变成 `"purchased"` 只是这个 effect 重新触发的依赖变化之一，在依赖变化后、"已购买"分支的 `queueMicrotask` 真正提交新结果之前，还会有一次用旧依赖跑的这个"未购买"分支，写下的 `not-completed` 因为用的是真实 key，会在 key 匹配的情况下抢先展示出来，让确认完成按钮在真实完成状态读出来之前先出现一帧，理论上允许一次不必要的重复确认点击。修复：这个分支改用一个真实查询键永远不会等于的哨兵值（`__unverified__::${key}`）写入，逼着 `effectiveCompletionStatus` 的 key 比对在这种情况下必然落回 `"checking"`，直到"已购买"分支的真实读取提交为止。
+
 ## 安全考虑
 
 - `TRUSTED_SUBMITTER_PRIVATE_KEY` 是 Anvil 默认测试账户私钥，公开已知、零真实价值，但仍然遵循"服务端环境变量、不带 `NEXT_PUBLIC_` 前缀、`.env.example` 只放占位符"的既有安全约定（保持处理方式一致，即使这次的值本身并不敏感），避免在代码里留下"某些私钥可以硬编码"的坏先例。
