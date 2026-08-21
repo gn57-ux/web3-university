@@ -1,5 +1,5 @@
 ---
-description: Next.js + TypeScript + Tailwind 前端开发规范（当前为 Mock 交互阶段）
+description: Next.js + TypeScript + Tailwind 前端开发规范（购买/完课/证书已接入本地 Anvil 真实合约，其余仍是 Mock）
 paths:
   - "app/**"
   - "components/**"
@@ -10,14 +10,14 @@ paths:
 
 ## 技术栈
 
-- Next.js（App Router）+ TypeScript + Tailwind CSS。
-- 当前阶段允许接入 Privy Email 登录和 Ethereum 嵌入式钱包；YD 余额、Faucet、课程支付及其他链上业务继续使用 Mock。目标最终技术栈另含 Viem（链交互）、Supabase（数据库），**均不在本阶段实现范围内**。
+- Next.js（App Router）+ TypeScript + Tailwind CSS + Viem（链交互，`lib/contracts/`）。
+- 已接入 Privy Email 登录和 Ethereum 嵌入式钱包；YD 余额、Faucet、课程购买、完课确认、NFT 证书已接入真实本地 Anvil 合约调用（`lib/contracts/`/`lib/purchase/`，见 `specs/14.contract-client-foundation/`~`specs/16.onchain-completion-certificate/`）。目标最终技术栈另含 Supabase（数据库）、Sepolia 部署，仍不在当前范围。
 
-## 本阶段范围（严格遵守）
+## 当前范围（严格遵守）
 
-- 只实现 Stitch 设计稿对应的静态 UI 和 Mock 交互：页面布局、组件样式、状态切换（如 loading/已购买/未购买等按钮态）均可用本地假数据和 `useState`/内存 mock 实现。
-- 当前阶段允许接入 Privy Email 登录和 Ethereum 嵌入式钱包（真实身份/连接/网络状态，见 `specs/10.wallet-auth-integration/`）；YD 余额、Faucet、课程支付及其他链上业务继续使用 Mock。仅支持 Email 登录，不接外部钱包、MetaMask、WalletConnect；`NEXT_PUBLIC_PRIVY_APP_ID` 只通过环境变量读取，真实值只存在于本地 `.env.local`，`.env.example` 只能写占位符。不接入真实数据库（不写 Supabase 客户端代码）、不发起真实合约调用（YD Token、课程购买、证书铸造等）。
-- 涉及"购买课程"等业务交互时，用 mock 函数模拟异步流程（如 `setTimeout` + 状态切换）展示 UI 反馈，不接后端；"连接钱包"/登录/退出/切换网络走真实 Privy SDK。
+- Stitch 设计稿对应的 UI 已实现；课程购买/YD 余额/Faucet/完课确认/NFT 证书走真实链上读写，其余交互（视频播放、评论、老师/管理后台等）仍用本地假数据和 `useState`/`localStorage`。
+- 已接入 Privy Email 登录和 Ethereum 嵌入式钱包（真实身份/连接/网络状态，见 `specs/10.wallet-auth-integration/`）。仅支持 Email 登录，不接外部钱包、MetaMask、WalletConnect；`NEXT_PUBLIC_PRIVY_APP_ID`/`TRUSTED_SUBMITTER_PRIVATE_KEY` 只通过环境变量读取，真实值只存在于本地 `.env.local`，`.env.example` 只能写占位符，后者必须是不带 `NEXT_PUBLIC_` 前缀的服务端专用变量（`app/api/complete-course/`）。不接入真实数据库（不写 Supabase 客户端代码）、不部署到本地 Anvil 以外的任何网络。
+- 涉及真实合约调用的写操作遵循 `lib/contracts/txError.ts` 的标准顺序（`simulateContract` → `writeContract` → `waitForTransactionReceipt`）与统一错误映射；账户/课程切换时的查询键竞态需按 `lib/purchase/` 现有 Hook 的既有模式处理（见 `specs/15.onchain-token-course-purchase/design.md`/`specs/16.onchain-completion-certificate/design.md` 的多轮结构化复核记录），不要重新发明。
 - 页面信息架构参考 `docs/PRD.md` 第 13 节（`/`、`/courses`、`/courses/[courseId]`、`/profile`、`/teacher`、`/admin`），但页面内容以 Stitch 设计稿为准，PRD 仅作业务背景参考。
 
 ## 设计稿还原（强制）

@@ -18,7 +18,7 @@ paths: contracts/**
 - 涉及权限的函数（如仅创建者/Owner 可调用）必须显式 `require` 校验调用者身份。
 - 涉及计数或余额的算术运算注意边界条件（如最后一份红包直接发放全部剩余金额，避免尾数遗留）。
 - 不使用 `block.timestamp`、`block.prevrandao` 等链上数据作为真实资金场景的安全随机源；仅可用于教学演示并需在注释中说明局限性（参考 `EthRedPacket.sol` 现有注释）。
-- 涉及 ERC-20/ERC-721 的合约（PRD 第 7 节：`YDToken`、`YDFaucet`、`Web3University`、`CourseCertificate`、`DemoCompletionOracle`）基于 OpenZeppelin 标准实现，转账使用 `SafeERC20`——已在 `contracts/web3-university/`（独立 Foundry 工程，`specs/11.yd-token-faucet/`~`specs/13.course-certificate-completion/`）完成 MVP，任何 `immutable` 地址字段（owner、token 引用等）必须在构造函数校验非零地址（零地址部署后无法修复）；课程价格等业务配置必须从链上状态读取，不得在函数体内硬编码。前端接入这些合约调用仍是后续里程碑，非当前阶段任务。
+- 涉及 ERC-20/ERC-721 的合约（PRD 第 7 节：`YDToken`、`YDFaucet`、`Web3University`、`CourseCertificate`、`DemoCompletionOracle`）基于 OpenZeppelin 标准实现，转账使用 `SafeERC20`——已在 `contracts/web3-university/`（独立 Foundry 工程，`specs/11.yd-token-faucet/`~`specs/13.course-certificate-completion/`）完成 MVP，任何 `immutable` 地址字段（owner、token 引用等）必须在构造函数校验非零地址（零地址部署后无法修复）；课程价格等业务配置必须从链上状态读取，不得在函数体内硬编码。前端已通过 `lib/contracts/`/`lib/purchase/`（`specs/14.contract-client-foundation/`~`specs/16.onchain-completion-certificate/`）接入本地 Anvil 部署的这些合约；部署到 Sepolia/主网仍是后续里程碑。
 
 ## 审计检查清单（新增合约代码前自查）
 
