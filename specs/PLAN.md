@@ -21,9 +21,9 @@
 | 11 | yd-token-faucet | Foundry 工程骨架 + `YDToken`（ERC-20）+ `YDFaucet`（限领水龙头） | - | v1 已完成 |
 | 12 | course-marketplace-contract | `Web3University`：老师白名单、课程审核上下架、`buyCourse`（价格读链上配置）、购买记录 | 11 | v1 已完成（注 1） |
 | 13 | course-certificate-completion | `CourseCertificate`（ERC-721）+ `DemoCompletionOracle` + `Web3University` 完课确认接线 | 12 | v1 已完成 |
-| 14 | contract-client-foundation | Anvil 本地链、ABI/地址同步、Viem 客户端、Privy 钱包客户端签名、统一错误/交易状态 | 10, 11, 12, 13 | 待开发 |
-| 15 | onchain-token-course-purchase | 真实 YD 余额/Faucet/approve/buyCourse/链上购买记录，替换 Mock | 14 | 待开发 |
-| 16 | onchain-completion-certificate | 完课确认（服务端受信任提交者）+ NFT 证书真实展示，替换 Mock | 15 | 待开发 |
+| 14 | contract-client-foundation | Anvil 本地链、ABI/地址同步、Viem 客户端、Privy 钱包客户端签名、统一错误/交易状态 | 10, 11, 12, 13 | v1 已完成（8 轮结构化复核后 ALLOW） |
+| 15 | onchain-token-course-purchase | 真实 YD 余额/Faucet/approve/buyCourse/链上购买记录，替换 Mock | 14 | v1 已完成（7 轮结构化复核 + 1 轮 P2 本地闭环 ALLOW/local） |
+| 16 | onchain-completion-certificate | 完课确认（服务端受信任提交者）+ NFT 证书真实展示，替换 Mock | 15 | v1 已完成（2 轮结构化复核 + 1 轮 P2 本地闭环 ALLOW/local） |
 
 **推荐执行顺序**：1 → 4 →（2, 3, 5, 6, 7, 8 可在 1、4 完成后并行，其中 5、6 对 4 为弱依赖） → 9 → 10（在现有 9 个 feature 全部完成后执行，10 内部任务顺序见其 tasks.md：T-001→T-002→T-003→(T-004~T-007 并行)→T-008） → 11 → 12 → 13（智能合约 MVP 三个 feature 严格串行，12 依赖 11 的 `YDToken`，13 依赖 12 的 `Web3University`） → 14 → 15 → 16（前端接入真实合约三个 feature 严格串行，均在本地 Anvil 链上进行，不部署 Sepolia）
 
