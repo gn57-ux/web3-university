@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "contracts:sync-abi": "node scripts/sync-contract-abis.mjs",
+    "contracts:sync-addresses": "node scripts/sync-contract-addresses.mjs",
+    "contracts:deploy-local": "bash contracts/web3-university/script/deploy-local.sh"
   },
   "dependencies": {
     "@privy-io/react-auth": "^3.37.1",

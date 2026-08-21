@@ -15,34 +15,34 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { sepolia } from "viem/chains";
 import { mockCurrentUser } from "@/lib/mock/fixtures";
+import { TARGET_CHAIN } from "@/lib/contracts/chain";
 
-export type WalletNetwork = "sepolia" | "wrong-network" | null;
+export type WalletNetwork = "correct" | "wrong-network" | null;
 
 export interface WalletState {
   connected: boolean;
   /** Privy SDK 尚未初始化完成，或一次登录正在进行中（modal 打开到 onComplete/onError 之间）。 */
   loading: boolean;
-  /** 一次 switchToSepolia() 调用正在进行中，用于单独禁用切网按钮，避免并发重复调用。 */
+  /** 一次 switchToTargetChain() 调用正在进行中，用于单独禁用切网按钮，避免并发重复调用。 */
   switchingNetwork: boolean;
   address: string | null;
   network: WalletNetwork;
   authError: string | null;
   login: () => void;
   logout: () => Promise<void>;
-  switchToSepolia: () => Promise<void>;
+  switchToTargetChain: () => Promise<void>;
   ydBalance: number;
   setYdBalance: (amount: number) => void;
 }
 
-const SEPOLIA_CAIP2 = `eip155:${sepolia.id}`;
+const TARGET_CHAIN_CAIP2 = `eip155:${TARGET_CHAIN.id}`;
 
 // ydBalance/authError/isAuthenticating 是本 Provider 唯一需要自己维护的状态：ydBalance
 // 继续是独立于真实钱包的 Mock 演示余额（不接入 YD 合约），authError/isAuthenticating
 // 需要跨组件共享（比如从 Hero 发起的登录，TopNav 也要能同步看到 loading/错误），三者
 // 都不能只是 useWallet() 内部的局部 useState——那样每个消费组件会各自持有一份互不
-// 同步的状态。connected/address/network/login/logout/switchToSepolia 则直接读 Privy
+// 同步的状态。connected/address/network/login/logout/switchToTargetChain 则直接读 Privy
 // 自身的全局状态，不需要再包一层 Context（PrivyProvider 内部已经是单例）。
 interface MockLayerState {
   ydBalance: number;
@@ -109,8 +109,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       config={{
         loginMethods: ["email"],
         embeddedWallets: { ethereum: { createOnLogin: "users-without-wallets" } },
-        defaultChain: sepolia,
-        supportedChains: [sepolia],
+        defaultChain: TARGET_CHAIN,
+        supportedChains: [TARGET_CHAIN],
         appearance: { theme: "dark", accentColor: "#7c3aed" },
       }}
     >
@@ -155,8 +155,8 @@ export function useWallet(): WalletState {
   const address = embeddedWallet?.address ?? null;
   const network: WalletNetwork = !connected
     ? null
-    : embeddedWallet?.chainId === SEPOLIA_CAIP2
-      ? "sepolia"
+    : embeddedWallet?.chainId === TARGET_CHAIN_CAIP2
+      ? "correct"
       : "wrong-network";
 
   const login = useCallback(() => {
@@ -173,11 +173,11 @@ export function useWallet(): WalletState {
     }
   }, [privyLogout, setAuthError]);
 
-  const switchToSepolia = useCallback(async () => {
+  const switchToTargetChain = useCallback(async () => {
     if (!embeddedWallet || switchingNetwork) return;
     setSwitchingNetwork(true);
     try {
-      await embeddedWallet.switchChain(sepolia.id);
+      await embeddedWallet.switchChain(TARGET_CHAIN.id);
       setAuthError(null);
     } catch (error) {
       setAuthError(toErrorMessage(error, "切换网络失败，请重试。"));
@@ -195,7 +195,7 @@ export function useWallet(): WalletState {
     authError,
     login,
     logout,
-    switchToSepolia,
+    switchToTargetChain,
     ydBalance,
     setYdBalance,
   };

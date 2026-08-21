@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, GraduationCap, Loader2, Menu, Wallet, X } from "lucide-react";
 import { useWallet } from "@/lib/wallet/useWallet";
+import { TARGET_CHAIN } from "@/lib/contracts/chain";
 
 const NAV_LINKS = [
   { href: "/", label: "首页" },
@@ -26,12 +27,12 @@ export function TopNav() {
     authError,
     login,
     logout,
-    switchToSepolia,
+    switchToTargetChain,
   } = useWallet();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const statusDotClass =
-    connected && network === "sepolia"
+    connected && network === "correct"
       ? "bg-secondary"
       : connected && network === "wrong-network"
         ? "bg-tertiary"
@@ -64,7 +65,7 @@ export function TopNav() {
           {connected && network === "wrong-network" && (
             <button
               type="button"
-              onClick={() => switchToSepolia()}
+              onClick={() => switchToTargetChain()}
               disabled={switchingNetwork}
               className="flex shrink-0 items-center gap-1.5 rounded-full border border-tertiary bg-tertiary-container px-2 py-1 font-mono text-label-md text-on-tertiary-container transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:px-3"
             >
@@ -72,18 +73,18 @@ export function TopNav() {
                 <Loader2 className="size-3 shrink-0 animate-spin" aria-hidden="true" />
               )}
               <span className="hidden sm:inline">
-                {switchingNetwork ? "切换中..." : "错误网络 · 切换到 Sepolia"}
+                {switchingNetwork ? "切换中..." : `错误网络 · 切换到 ${TARGET_CHAIN.name}`}
               </span>
               <span className="sm:hidden">{switchingNetwork ? "切换中" : "切换网络"}</span>
             </button>
           )}
-          {connected && network === "sepolia" && (
+          {connected && network === "correct" && (
             <span
               className="flex shrink-0 items-center rounded-full border border-outline-variant bg-surface-container px-2 py-1 font-mono text-label-md text-on-surface-variant sm:px-3"
-              title="Sepolia"
+              title={TARGET_CHAIN.name}
             >
-              <span className="hidden sm:inline">Sepolia</span>
-              <span className="sm:hidden">SEP</span>
+              <span className="hidden sm:inline">{TARGET_CHAIN.name}</span>
+              <span className="sm:hidden">{TARGET_CHAIN.name.slice(0, 3).toUpperCase()}</span>
             </span>
           )}
 

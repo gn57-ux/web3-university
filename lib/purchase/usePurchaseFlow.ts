@@ -66,7 +66,7 @@ export function usePurchaseFlow(
 
   function prereqsStillValid() {
     const p = prereqsRef.current;
-    return p.connected && p.network === "sepolia" && p.ydBalance >= p.requiredBalanceYD;
+    return p.connected && p.network === "correct" && p.ydBalance >= p.requiredBalanceYD;
   }
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export function usePurchaseFlow(
   const state: PurchaseState = useMemo(() => {
     if (isPurchased) return "purchased";
     if (!wallet.connected) return "wallet-disconnected";
-    if (wallet.network !== "sepolia") return "wrong-network";
+    if (wallet.network !== "correct") return "wrong-network";
     if (wallet.ydBalance < requiredBalanceYD) return "insufficient-balance";
     if (isBuying) return "buying";
     if (isApproved) return "ready-to-buy";

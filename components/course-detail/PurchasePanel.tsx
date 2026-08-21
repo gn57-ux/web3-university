@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Check, Loader2, ShieldCheck, WifiOff } from "lucide-react";
 import { useWallet } from "@/lib/wallet/useWallet";
 import { usePurchaseFlow } from "@/lib/purchase/usePurchaseFlow";
+import { TARGET_CHAIN } from "@/lib/contracts/chain";
 import { TwoPhaseTxButton } from "./TwoPhaseTxButton";
 
 const BENEFITS = ["完整视频访问", "编码练习", "链上证书（SBT）", "社区访问"];
@@ -70,18 +71,18 @@ export function PurchasePanel({
           <div className="flex flex-col gap-2">
             <p className="flex items-center gap-2 text-body-md text-error">
               <WifiOff className="size-4 shrink-0" aria-hidden="true" />
-              请切换到 Sepolia 网络
+              请切换到 {TARGET_CHAIN.name} 网络
             </p>
             <button
               type="button"
-              onClick={() => wallet.switchToSepolia()}
+              onClick={() => wallet.switchToTargetChain()}
               disabled={wallet.switchingNetwork}
               className="flex items-center justify-center gap-2 rounded-md bg-primary-container px-4 py-3 text-body-md font-medium text-on-primary-container transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {wallet.switchingNetwork && (
                 <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden="true" />
               )}
-              {wallet.switchingNetwork ? "切换中..." : "切换到 Sepolia"}
+              {wallet.switchingNetwork ? "切换中..." : `切换到 ${TARGET_CHAIN.name}`}
             </button>
           </div>
         ) : state === "insufficient-balance" ? (
@@ -104,7 +105,7 @@ export function PurchasePanel({
 
       <p className="mt-stack-sm flex items-center gap-2 text-code-sm font-mono text-on-surface-variant">
         <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
-        Secured by Sepolia Smart Contracts
+        Secured by {TARGET_CHAIN.name} Smart Contracts
       </p>
     </div>
   );
