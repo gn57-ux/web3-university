@@ -2,16 +2,22 @@
 
 import { useProfilePurchases } from "@/lib/purchase/useProfilePurchases";
 
-function truncateHash(hash: string) {
-  return `${hash.slice(0, 8)}...${hash.slice(-6)}`;
-}
-
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString("zh-CN", { dateStyle: "medium", timeStyle: "short" });
 }
 
 export function PurchaseRecordsTab() {
-  const purchases = useProfilePurchases();
+  const { purchases, loading, error } = useProfilePurchases();
+
+  if (loading && purchases.length === 0) {
+    return <p className="text-body-md text-on-surface-variant">读取链上购买记录中...</p>;
+  }
+
+  // 读取失败必须单独展示，不能被"暂无购买记录"这个正常空态掩盖（同
+  // PurchasedCoursesTab.tsx，Codex Review 结构化复核抓到的问题）。
+  if (error) {
+    return <p className="text-body-md text-error">读取购买记录失败：{error}</p>;
+  }
 
   if (purchases.length === 0) {
     return <p className="text-body-md text-on-surface-variant">暂无购买记录。</p>;
@@ -30,18 +36,17 @@ export function PurchaseRecordsTab() {
         </thead>
         <tbody>
           {purchases.map((purchase) => (
-            <tr key={purchase.txHash} className="border-b border-outline-variant last:border-b-0">
+            <tr key={purchase.courseId} className="border-b border-outline-variant last:border-b-0">
               <td className="px-4 py-3 text-on-surface">{purchase.courseName}</td>
               <td className="px-4 py-3 font-mono text-tertiary">{purchase.priceYD} YD</td>
               <td className="px-4 py-3 text-on-surface-variant">{formatDate(purchase.purchasedAt)}</td>
               <td className="px-4 py-3">
-                <button
-                  type="button"
-                  className="font-mono text-on-surface-variant underline decoration-dotted hover:text-primary"
-                  title="演示模式，不跳转真实区块浏览器"
-                >
-                  {truncateHash(purchase.txHash)}
-                </button>
+                {/* 链上 Purchase 结构不存交易哈希，purchaseOf 查询无法回溯出历史
+                    交易哈希——这里如实展示"无记录"，不假造一个不存在的哈希
+                    （design.md「购买记录」模块的明确设计决定）。 */}
+                <span className="font-mono text-on-surface-variant" title="链上记录未存储历史交易哈希">
+                  未记录
+                </span>
               </td>
             </tr>
           ))}

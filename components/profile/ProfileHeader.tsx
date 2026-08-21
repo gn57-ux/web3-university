@@ -20,9 +20,11 @@ interface ProfileHeaderProps {
 }
 
 export function ProfileHeader({ username, onEditUsername }: ProfileHeaderProps) {
-  // address/ydBalance 读自 useWallet()（而非固定 fixture），保证在课程详情页领取过
-  // Mock YD（wallet.setYdBalance）后，个人中心头部余额同步更新，与 TopNav 等其它
-  // 消费同一状态的地方保持一致。role 仍取 mockCurrentUser（useWallet 未暴露该字段）。
+  // address/ydBalance 读自 useWallet()（而非固定 fixture），ydBalance 现在是
+  // `YDToken.balanceOf(address)` 的真实链上余额（见 lib/purchase/useOnchainBalance.ts），
+  // 在课程详情页 Faucet 领取/购买后调用 wallet.refetchYdBalance() 刷新，个人中心头部
+  // 余额与 TopNav 等其它消费同一状态的地方保持一致。role 仍取 mockCurrentUser
+  // （useWallet 未暴露该字段）。
   // address 类型是 string | null，但本组件只会在 app/profile/page.tsx 的登录门禁
   // 判定 connected 为 true 之后才被渲染，届时 address 必然非空，用 "" 兜底纯粹是
   // 满足类型检查，不代表真的会展示空地址。

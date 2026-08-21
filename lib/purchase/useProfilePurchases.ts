@@ -1,26 +1,25 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { mockTransactions } from "@/lib/mock/fixtures";
-import { getPurchases, subscribePurchases, type MockPurchaseRecord } from "@/lib/mock/purchaseStore";
-import { useWallet } from "@/lib/wallet/useWallet";
+import { useOnchainPurchases, type MockPurchaseRecord } from "./useOnchainPurchases";
+
+export type { MockPurchaseRecord };
+
+export interface ProfilePurchases {
+  purchases: MockPurchaseRecord[];
+  loading: boolean;
+  error: string | null;
+}
 
 /**
- * 已购课程/购买记录 Tab 共用：优先读共享 Mock Store（feature 4 写入的真实购买记录，
- * feature 10 起按登录账户隔离），为空则回退本 feature 的默认 fixtures
- * （`mockTransactions`），两者字段结构一致。用 useSyncExternalStore 而非 useEffect
- * 里 setState 恢复，避免 hydration mismatch（见 specs/LESSONS.md 2026-08-12 Feature 4
- * 条目、2026-08-13 Feature 5 条目）。本 Hook 只会在 `/profile` 登录门禁判定
- * connected 为 true 之后被渲染，届时 address 必然非空。
+ * 已购课程/购买记录/学习进度 Tab 共用：直接透传 `useOnchainPurchases()` 的链上
+ * 读取结果。不再像 Mock 版本那样在没有真实记录时回退展示固定的
+ * `mockTransactions`——链上数据就是唯一真实来源，没有购买记录时应该展示"暂无"，
+ * 而不是让新用户看到自己从未购买过的课程被标成"已购买"（这是本 feature 相对
+ * Mock 版本的一处行为变化，见 specs/15.onchain-token-course-purchase 的实现
+ * 报告，不是遗漏）。本 Hook 只会在 `/profile` 登录门禁判定 connected 为 true 之
+ * 后被渲染，届时 address 必然非空。
  */
-export function useProfilePurchases(): MockPurchaseRecord[] {
-  const { address } = useWallet();
-  return useSyncExternalStore(
-    subscribePurchases,
-    () => {
-      const real = getPurchases(address);
-      return real.length > 0 ? real : mockTransactions;
-    },
-    () => mockTransactions
-  );
+export function useProfilePurchases(): ProfilePurchases {
+  const { purchases, loading, error } = useOnchainPurchases();
+  return { purchases, loading, error };
 }

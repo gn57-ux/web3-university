@@ -2,16 +2,22 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { mockCourses, mockTransactions } from "@/lib/mock/fixtures";
+import { mockCourses } from "@/lib/mock/fixtures";
 import { useProfilePurchases } from "@/lib/purchase/useProfilePurchases";
 
 export function PurchasedCoursesTab() {
-  const purchases = useProfilePurchases();
-  // useProfilePurchases 在没有真实购买记录时回退返回 mockTransactions 这个具体的模块
-  // 引用（见该 hook 的实现），可以直接用引用相等判断当前展示的是不是回退数据——
-  // 回退数据不代表真实购买，"继续学习"按钮不能指向会被购课门禁拦截的 /learn/{id}，
-  // 改为跳转课程详情页，避免"个人中心显示已购、点进去却提示未购买"的自相矛盾。
-  const isFallback = purchases === mockTransactions;
+  const { purchases, loading, error } = useProfilePurchases();
+
+  if (loading && purchases.length === 0) {
+    return <p className="text-body-md text-on-surface-variant">读取链上已购课程中...</p>;
+  }
+
+  // 读取失败必须单独展示，不能被"暂无已购课程"这个正常空态掩盖——否则一次
+  // RPC 抖动会让已购课程用户误以为自己什么都没买（Codex Review 结构化复核
+  // 抓到的问题：初版丢弃了 useProfilePurchases() 已经暴露的 error）。
+  if (error) {
+    return <p className="text-body-md text-error">读取已购课程失败：{error}</p>;
+  }
 
   if (purchases.length === 0) {
     return <p className="text-body-md text-on-surface-variant">暂无已购课程。</p>;
@@ -33,10 +39,10 @@ export function PurchasedCoursesTab() {
             <div className="flex flex-1 flex-col gap-2 p-4">
               <h3 className="font-heading text-headline-md text-on-surface">{course.title}</h3>
               <Link
-                href={isFallback ? `/courses/${course.id}` : `/learn/${course.id}`}
+                href={`/learn/${course.id}`}
                 className="mt-auto w-fit rounded-md bg-primary-container px-4 py-2 text-body-md font-medium text-on-primary-container transition-colors hover:opacity-90"
               >
-                {isFallback ? "查看课程详情" : "继续学习"}
+                继续学习
               </Link>
             </div>
           </div>

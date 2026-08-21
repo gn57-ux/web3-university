@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgressBar } from "@/components/learning-center/ProgressBar";
-import { mockLessons, mockTransactions } from "@/lib/mock/fixtures";
+import { mockLessons } from "@/lib/mock/fixtures";
 import { defaultCourseProgress } from "@/lib/mock/profileFixtures";
 import { useProfilePurchases } from "@/lib/purchase/useProfilePurchases";
 
@@ -10,28 +10,35 @@ import { useProfilePurchases } from "@/lib/purchase/useProfilePurchases";
 const DEFAULT_COMPLETED_LESSONS = 3;
 
 export function LearningProgressTab() {
-  const purchases = useProfilePurchases();
-  // 回退演示数据时展示固定的 3 门课程进度；一旦存在真实购买记录，必须按真实
-  // 已购课程过滤（F-005：每门已购课程对应一条进度条），不能继续展示与"已购课程"
-  // "购买记录" 两个 Tab 不一致的固定列表。
-  const isFallback = purchases === mockTransactions;
+  const { purchases, loading, error } = useProfilePurchases();
 
-  const progressList = isFallback
-    ? defaultCourseProgress
-    : purchases.map((purchase) => {
-        const preset = defaultCourseProgress.find((item) => item.courseId === purchase.courseId);
-        if (preset) return preset;
+  // 必须按真实已购课程过滤（F-005：每门已购课程对应一条进度条），不再回退展示
+  // 固定的演示课程列表——链上数据是唯一真实来源，没有购买记录时应该展示"暂无"，
+  // 不能继续展示与"已购课程"/"购买记录" 两个 Tab 不一致的固定列表。
+  const progressList = purchases.map((purchase) => {
+    const preset = defaultCourseProgress.find((item) => item.courseId === purchase.courseId);
+    if (preset) return preset;
 
-        const totalLessons = mockLessons.filter(
-          (lesson) => lesson.courseId === purchase.courseId
-        ).length;
-        return {
-          courseId: purchase.courseId,
-          courseName: purchase.courseName,
-          completedLessons: Math.min(DEFAULT_COMPLETED_LESSONS, totalLessons),
-          totalLessons,
-        };
-      });
+    const totalLessons = mockLessons.filter(
+      (lesson) => lesson.courseId === purchase.courseId
+    ).length;
+    return {
+      courseId: purchase.courseId,
+      courseName: purchase.courseName,
+      completedLessons: Math.min(DEFAULT_COMPLETED_LESSONS, totalLessons),
+      totalLessons,
+    };
+  });
+
+  if (loading && progressList.length === 0) {
+    return <p className="text-body-md text-on-surface-variant">读取链上学习进度中...</p>;
+  }
+
+  // 读取失败必须单独展示，不能被"暂无学习进度"这个正常空态掩盖（同
+  // PurchasedCoursesTab.tsx，Codex Review 结构化复核抓到的问题）。
+  if (error) {
+    return <p className="text-body-md text-error">读取学习进度失败：{error}</p>;
+  }
 
   if (progressList.length === 0) {
     return <p className="text-body-md text-on-surface-variant">暂无学习进度。</p>;
