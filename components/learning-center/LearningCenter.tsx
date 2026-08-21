@@ -135,8 +135,18 @@ export function LearningCenter({ courseId, courseTitle, lessons }: LearningCente
     const key = `${address ?? "anon"}::${courseId}`;
 
     if (!address || effectiveStatus !== "purchased") {
+      // 这里不能把 "not-completed" 写在真实查询键（key）下——effectiveStatus 从
+      // "checking" 变成 "purchased" 只是这次 effect 重新触发的其中一个依赖变化，
+      // 在它变化后、下面"已购买"分支的 queueMicrotask 真正提交新结果之前，还会
+      // 有一次用旧依赖值（effectiveStatus !== "purchased"）跑的这个分支——如果
+      // 这里写的是真实 key，那次结果会在 key 匹配的情况下抢先展示"未完成"，
+      // 让"确认完成并铸造证书"按钮在真实完成状态读出来之前就先出现一帧，允许
+      // 一次不必要的重复确认点击（Codex Review 结构化复核抓到的 P2）。用一个
+      // 真实查询键永远不会等于的哨兵值，逼着下面 effectiveCompletionStatus 的
+      // key 比对在这种情况下必然落到 "checking"，直到"已购买"分支的真实读取
+      // 提交为止。
       queueMicrotask(() => {
-        if (!cancelled) setCompletionCheck({ key, status: "not-completed" });
+        if (!cancelled) setCompletionCheck({ key: `__unverified__::${key}`, status: "not-completed" });
       });
       return () => {
         cancelled = true;

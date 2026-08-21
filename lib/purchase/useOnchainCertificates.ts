@@ -109,6 +109,17 @@ export function useOnchainCertificates(): OnchainCertificatesResult {
           ]);
           const [, , completedAt] = certData;
 
+          // `hasCertificate[courseId][student]` 记录的是"当初铸造给谁"，NFT 本身
+          // 继承自 OpenZeppelin ERC721 的 transferFrom/safeTransferFrom 是可转让
+          // 的——转让后原学生的 hasCertificate 仍是 true，若不再核对当前真实拥有者
+          // （ownerOf），原学生的个人中心会继续展示一枚他已经不再拥有的证书
+          // （Codex Review 结构化复核抓到的 P2）。用 ownerOf 结果兜底过滤，转让出去
+          // 后原学生这里不再显示；接收方要在自己的个人中心看到这枚证书需要按
+          // Transfer 事件反查，属于更大范围的变更（本 feature 的已知种子课程集合
+          // 假设"student 参数就是当前查询的账户"，不在这次修复范围内，本应用目前
+          // 也没有暴露任何证书转让入口，只是继承自 ERC721 标准的可转让性）。
+          if (owner.toLowerCase() !== studentAddress.toLowerCase()) return null;
+
           const certificate: OnchainCertificate = {
             courseId: slug,
             courseName: courseNameForSlug(slug),
