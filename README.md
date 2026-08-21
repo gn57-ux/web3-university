@@ -2,8 +2,8 @@
 
 Web3 在线课程 DApp：链上 YD Token 支付 + NFT 课程证书，链下承载视频/评论/进度。仓库包含三部分：
 
-- **前端**（仓库根目录）：Next.js + TypeScript + Tailwind CSS 实现的 Stitch 设计稿静态 UI 与 Mock 交互，**当前阶段已接入 Privy Email 登录 + Ethereum 嵌入式钱包（真实身份/连接/网络状态），YD 余额、Faucet、课程支付、NFT 证书铸造等链上业务仍为 Mock，尚未接入下方的智能合约或数据库**。
-- **Web3 University 智能合约 MVP**（`contracts/web3-university/`，独立 Foundry 工程）：`YDToken`/`YDFaucet`/`Web3University`/`CourseCertificate`/`DemoCompletionOracle` 五个分离部署的合约，见下方「智能合约 MVP」章节。目前只完成合约本身（`docs/PRD.md` 里程碑一「合约闭环」），前端尚未接入真实合约调用。
+- **前端**（仓库根目录）：Next.js + TypeScript + Tailwind CSS 实现的 Stitch 设计稿 UI，**已接入 Privy Email 登录 + Ethereum 嵌入式钱包，YD 余额/Faucet/课程购买/完课确认/NFT 证书均已接入下方本地 Anvil 部署的智能合约（真实链上读写），其余交互（视频播放、评论、老师/管理后台）仍为 Mock，未接入数据库**。
+- **Web3 University 智能合约 MVP**（`contracts/web3-university/`，独立 Foundry 工程）：`YDToken`/`YDFaucet`/`Web3University`/`CourseCertificate`/`DemoCompletionOracle` 五个分离部署的合约，见下方「智能合约 MVP」章节。前端已通过 `lib/contracts/`/`lib/purchase/` 接入本地 Anvil 部署，尚未部署到 Sepolia。
 - **智能合约教学示例**（`contracts/*.sol`）：与上述 MVP 无关的独立 Remix 演示合约，见文末「智能合约教学示例」章节。
 
 ## 前端
@@ -73,15 +73,15 @@ lib/
 
 ### 当前阶段范围（重要）
 
-- 实现 Stitch 设计稿对应的静态 UI 与 Mock 交互；已接入 Privy Email 登录 + Ethereum 嵌入式钱包（真实身份/连接/网络状态），不接入外部钱包（MetaMask/WalletConnect）、不接入 Supabase、不发起真实合约调用（YD Token、课程购买、证书铸造等）。
-- "购买课程""铸造 NFT"等业务操作仍是本地状态机 + `setTimeout` 模拟的 Mock 异步流程；"登录/退出/切换网络"走真实 Privy SDK。
+- Stitch 设计稿对应的 UI 已实现；已接入 Privy Email 登录 + Ethereum 嵌入式钱包，不接入外部钱包（MetaMask/WalletConnect）、不接入 Supabase。
+- **课程购买、YD 余额/Faucet、完课确认、NFT 证书均已接入下方本地 Anvil 合约的真实链上读写**（`lib/contracts/`/`lib/purchase/`，见 `specs/14.contract-client-foundation/`~`specs/16.onchain-completion-certificate/`）；只对接本地 Anvil，尚未部署到 Sepolia。完课确认由 `app/api/complete-course/` 服务端 Route Handler 代表受信任提交者账户发起，私钥只存在于服务端环境变量。其余业务操作（视频播放、评论、老师/管理后台等）仍是本地状态机 + Mock 数据；"登录/退出/切换网络"走真实 Privy SDK。
 - 未登录访问 `/profile` 会展示登录门禁，不渲染任何资料内容。
-- 购买记录（`lib/mock/purchaseStore.ts`）按登录账户地址隔离：同一浏览器切换 Privy 账户不会继承上一账户的已购课程/学习权限。
-- 各页面间共享的课程/证书/购买记录等数据集中在 `lib/mock/`，详细的架构决策与踩坑记录见 `specs/LESSONS.md` 与 `specs/memory/`。
+- 已购课程/购买记录/NFT 证书均按登录账户地址从链上实时查询（`lib/purchase/useOnchainPurchases.ts`/`useOnchainCertificates.ts`）：同一浏览器切换 Privy 账户不会继承上一账户的已购课程/学习权限。
+- 各页面间共享的课程等静态展示数据集中在 `lib/mock/`，详细的架构决策与踩坑记录见 `specs/LESSONS.md`、`specs/memory/` 与各 Feature 目录的 `design.md`。
 
 ### 部署
 
-纯静态/SSR 前端，`npm run build` 后可部署到任意支持 Next.js 的平台（Vercel 等），部署环境需配置 `NEXT_PUBLIC_PRIVY_APP_ID`（真实 App ID，不要提交到仓库），无需额外后端服务。
+前端部署环境需配置 `NEXT_PUBLIC_PRIVY_APP_ID`（真实 App ID）；由于已接入真实合约调用，还需要一条可访问的 EVM RPC（当前固定本地 Anvil，`lib/contracts/chain.ts` 的 `TARGET_CHAIN`）和已部署的合约地址（`lib/contracts/addresses.ts`），因此**当前阶段不能直接部署到 Vercel 等公网环境**——本地演示仅需 `npm run build` 后指向本机 Anvil 即可；换成 Sepolia 等公网链是后续里程碑。`app/api/complete-course/` 还需要服务端环境变量 `TRUSTED_SUBMITTER_PRIVATE_KEY`（见 `.env.example`），真实值不要提交到仓库。
 
 ## 智能合约 MVP（`contracts/web3-university/`）
 
@@ -104,7 +104,7 @@ forge test        # 62/62 通过
 forge coverage --report summary   # 5 个合约源文件均 100% 行覆盖率
 ```
 
-**当前状态**：合约本身已完成并通过完整单元/集成测试（含全链路本地部署脚本 `script/DeployAll.s.sol` 验证"创建课程→审核→上架→购买→确认完成→铸造证书"无断点），**尚未部署到 Sepolia，前端也尚未接入这些合约**——根目录 Next.js 应用的 YD 余额/购买/证书仍是 Mock 实现，接入真实合约调用是后续里程碑。详见 `contracts/web3-university/README.md`。
+**当前状态**：合约本身已完成并通过完整单元/集成测试（含全链路本地部署脚本 `script/DeployAll.s.sol` 验证"创建课程→审核→上架→购买→确认完成→铸造证书"无断点）；**前端已通过 `lib/contracts/`/`lib/purchase/` 接入本地 Anvil 部署**（`script/DeployAllLocal.s.sol`，`npm run contracts:deploy-local`），YD 余额/购买/完课确认/证书均为真实链上读写，**尚未部署到 Sepolia**。详见 `contracts/web3-university/README.md`。
 
 ## 智能合约教学示例
 
