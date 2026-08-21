@@ -16,22 +16,22 @@
 
 ### 功能 1：余额与 Faucet
 
-- [ ] T-001: `lib/purchase/useOnchainBalance.ts` + `useWallet.tsx` 改造（`ydBalance` 只读来自链上，暴露 `refetchYdBalance`，移除 `setYdBalance`） ~30min
-- [ ] T-002: `lib/purchase/useFaucetClaim.ts`；`PurchasePanel.tsx` 的"insufficient-balance"分支接入真实 `claim()` ~20min
+- [x] T-001: `lib/purchase/useOnchainBalance.ts` + `useWallet.tsx` 改造（`ydBalance` 只读来自链上，暴露 `refetchYdBalance`，移除 `setYdBalance`） ~30min
+- [x] T-002: `lib/purchase/useFaucetClaim.ts`；`PurchasePanel.tsx` 的"insufficient-balance"分支接入真实 `claim()` ~20min
 
 ### 功能 2：两阶段购买
 
-- [ ] T-003: `lib/contracts/courseIdMap.ts`（slug↔courseId 固定映射） ~10min
-- [ ] T-004: `usePurchaseFlow.ts` 改造：`allowance`/`hasPurchased` 链上读取，`approve()`/`buy()` 走 `walletClient.writeContract` + `waitForTransactionReceipt`，`state` 派生改为纯函数 ~40min
+- [x] T-003: `lib/contracts/courseIdMap.ts`（slug↔courseId 固定映射） ~10min
+- [x] T-004: `usePurchaseFlow.ts` 改造：`allowance`/`hasPurchased` 链上读取，`approve()`/`buy()` 走 `walletClient.writeContract` + `waitForTransactionReceipt`，`state` 派生改为纯函数 ~40min
 
 ### 功能 3：购买记录展示
 
-- [ ] T-005: `lib/purchase/useOnchainPurchases.ts`（个人中心已购课程/购买记录 Tab 用）；删除 `lib/mock/purchaseStore.ts` 及其全部调用点，改接链上读取 ~30min
-- [ ] T-006: `LearningCenter.tsx` 购课门禁改用链上 `hasPurchased` ~15min
+- [x] T-005: `lib/purchase/useOnchainPurchases.ts`（个人中心已购课程/购买记录 Tab 用）；删除 `lib/mock/purchaseStore.ts` 及其全部调用点，改接链上读取 ~30min
+- [x] T-006: `LearningCenter.tsx` 购课门禁改用链上 `hasPurchased` ~15min
 
 ### 集成与测试
 
-- [ ] T-007: 浏览器端到端联调：Faucet 领取 → 余额变化 → approve → buyCourse → 个人中心/学习中心状态同步刷新，全程用真实 Anvil 本地链验证（不使用 Mock 兜底），`npm run lint`/`npx tsc --noEmit`/`npm run build` 全绿 ~30min
+- [x] T-007: 浏览器端到端联调：Faucet 领取 → 余额变化 → approve → buyCourse → 个人中心/学习中心状态同步刷新，全程用真实 Anvil 本地链验证（不使用 Mock 兜底），`npm run lint`/`npx tsc --noEmit`/`npm run build` 全绿 ~30min
 
 ## 依赖关系
 
