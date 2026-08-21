@@ -5,6 +5,7 @@
 | 日期 | 版本 | 说明 |
 | --- | --- | --- |
 | 2026-08-13 | v1 | 初始设计（集中实现 1/2/4/6 四个 feature 已记录的 v2 钱包身份变更） |
+| 2026-08-20 | v1.1 | 标注：[[14.contract-client-foundation]] 已将本文档中"仅 Sepolia"的目标网络描述改为本地 Anvil（`switchToSepolia`→`switchToTargetChain`，`network: "sepolia"→"correct"`），Sepolia 部署是后续里程碑，本文档以下正文未逐处修改，以此条为准 |
 
 ## 项目架构
 

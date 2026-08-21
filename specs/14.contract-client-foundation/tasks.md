@@ -16,22 +16,22 @@
 
 ### 功能 1：链定义与部署种子脚本
 
-- [ ] T-001: `lib/contracts/chain.ts`（`TARGET_CHAIN` viem 自定义链定义，Anvil Local）；扩展合约侧部署脚本为可广播到本地 Anvil 的变体（含课程种子：白名单老师、按 `mockCourses` 顺序创建/审核/上架 3 门课程，`metadataURI` 存 slug） ~30min
+- [x] T-001: `lib/contracts/chain.ts`（`TARGET_CHAIN` viem 自定义链定义，Anvil Local）；扩展合约侧部署脚本为可广播到本地 Anvil 的变体（含课程种子：白名单老师、按 `mockCourses` 顺序创建/审核/上架 3 门课程，`metadataURI` 存 slug） ~30min
 
 ### 功能 2：ABI/地址同步
 
-- [ ] T-002: `scripts/sync-contract-abis.mjs` + `npm run contracts:sync-abi`，生成 `lib/contracts/abis/*.ts`（5 个合约） ~20min
-- [ ] T-003: `scripts/sync-contract-addresses.mjs` + `npm run contracts:sync-addresses`，解析 Foundry broadcast 产物生成 `lib/contracts/addresses.ts` ~20min
+- [x] T-002: `scripts/sync-contract-abis.mjs` + `npm run contracts:sync-abi`，生成 `lib/contracts/abis/*.ts`（5 个合约） ~20min
+- [x] T-003: `scripts/sync-contract-addresses.mjs` + `npm run contracts:sync-addresses`，解析 Foundry broadcast 产物生成 `lib/contracts/addresses.ts` ~20min
 
 ### 功能 3：Viem 客户端与错误/状态模型
 
-- [ ] T-004: `lib/contracts/useContractClients.ts`（`publicClient`/`walletClient`，基于 Privy 嵌入式钱包 provider） ~20min
-- [ ] T-005: `lib/contracts/txError.ts`（`TxStatus` 类型 + `toContractErrorMessage()`） ~15min
+- [x] T-004: `lib/contracts/useContractClients.ts`（`publicClient`/`walletClient`，基于 Privy 嵌入式钱包 provider） ~20min
+- [x] T-005: `lib/contracts/txError.ts`（`TxStatus` 类型 + `toContractErrorMessage()`） ~15min
 
 ### 功能 4：useWallet 网络改造与联调
 
-- [ ] T-006: `useWallet.tsx`：`WalletNetwork` 改为 `"correct" | "wrong-network" | null`，网络判定改用 `TARGET_CHAIN`，`switchToSepolia`→`switchToTargetChain`；`PrivyProvider` 的 `defaultChain`/`supportedChains` 改为 `TARGET_CHAIN`；同步更新 `TopNav.tsx`/`PurchasePanel.tsx` 的调用与文案 ~30min
-- [ ] T-007: 联调验证：启动 Anvil → 运行部署+种子脚本 → `npm run contracts:sync-abi && npm run contracts:sync-addresses` → 前端 `publicClient.readContract` 能读到 `YDToken.name()`/`Web3University.courses(1)` 等真实链上数据（写一个临时验证脚本或在浏览器 QA 中确认，不需要正式测试框架） ~20min
+- [x] T-006: `useWallet.tsx`：`WalletNetwork` 改为 `"correct" | "wrong-network" | null`，网络判定改用 `TARGET_CHAIN`，`switchToSepolia`→`switchToTargetChain`；`PrivyProvider` 的 `defaultChain`/`supportedChains` 改为 `TARGET_CHAIN`；同步更新 `TopNav.tsx`/`PurchasePanel.tsx` 的调用与文案 ~30min
+- [x] T-007: 联调验证：启动 Anvil → 运行部署+种子脚本 → `npm run contracts:sync-abi && npm run contracts:sync-addresses` → 前端 `publicClient.readContract` 能读到 `YDToken.name()`/`Web3University.courses(1)` 等真实链上数据（写一个临时验证脚本或在浏览器 QA 中确认，不需要正式测试框架） ~20min
 
 ## 依赖关系
 
